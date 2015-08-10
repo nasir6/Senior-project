@@ -7,7 +7,7 @@ import java.io.IOException;
 public class bmp{
 	int[] offSet = {0, 2, 10, 14, 18, 22, 26, 28, 30, 34, 38, 42, 46, 50};
 	int[] len = {2, 4, 4, 4, 4, 4, 2, 2, 4, 4, 4, 4, 4, 4};
-	int[] flag = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+	int[] flag = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 	String filename = "test.bmp";
 	String[] information = {"BM", "File Size", 
 	"file Offset to Raster Data", "InfoHeader size", 

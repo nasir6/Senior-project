@@ -46,4 +46,16 @@ public class ReadFile{
 	
 	}
 
+	public void ToDECIMAL() {
+		StringBuilder sb = new StringBuilder(buffer.length * 2);
+		for(int i=buffer.length-1;i>=0;i--){
+			// buffer[i]=03
+			// if(buffer[i]==00)
+		  sb.append(String.format("%02x", buffer[i] & 0xff));
+		}
+		String s=sb.toString();
+		System.out.print(Integer.parseInt(s, 16));
+		System.out.println(" == "+s);
+}
+
 }
