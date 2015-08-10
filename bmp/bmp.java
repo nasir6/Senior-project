@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+// System.out.println();
 public class bmp{
 	int[] offSet = {0, 2, 10, 14, 18, 22, 26, 28, 30, 34, 38, 42, 46, 50};
 	int[] len = {2, 4, 4, 4, 4, 4, 2, 2, 4, 4, 4, 4, 4, 4};
