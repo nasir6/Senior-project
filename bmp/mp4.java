@@ -13,7 +13,7 @@ public class mp4{
 	// bmp(){
 		// System.out.println(len.length+" == "+offSet.length+" == "+information.length);
 		// for(int i = 0; i < offSet.length ; i++) {
-			int count =10;
+			int count =4;
 			int offSet_=0;
 			while(count>0){
 				
