@@ -29,22 +29,31 @@ public class ReadFile{
 		    e.printStackTrace();
 		}
 	}
-	public void ToASCII(){
+	public String ToASCII(){
 		try{
 			String result = new String(buffer, "ASCII");
 			// System.out.println(information);
-			System.out.println(result);
-		}catch(Exception e){}
+			// System.out.println(result);
+			return result;
+		}catch(Exception e){
+
+		}
+		return "nil";
 	}
 
-	public void ToDECIMAL() {
+	public int ToDECIMAL() {
 		StringBuilder sb = new StringBuilder(buffer.length * 2);
-		for(int i=buffer.length-1;i>=0;i--){
+		// for(int i=buffer.length-1;i>=0;i--){
+		for (int i=0;i<buffer.length;i++) {
+			// buffer[i]
+			System.out.println(buffer[i]);
 		  sb.append(String.format("%02x", buffer[i] & 0xff));
+			// sb.append(buffer[i]);
 		}
 		String s=sb.toString();
-		System.out.print(Integer.parseInt(s, 16));
+		// System.out.print(Integer.parseInt(s, 16));
 		System.out.println(" == "+s);
+		return Integer.parseInt(s, 16);
 }
 
 }
