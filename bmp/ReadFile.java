@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import javax.imageio.ImageIO;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 public class ReadFile{
 	int offset, length;
 	String filename, description;
@@ -46,14 +49,40 @@ public class ReadFile{
 		// for(int i=buffer.length-1;i>=0;i--){
 		for (int i=0;i<buffer.length;i++) {
 			// buffer[i]
-			System.out.println(buffer[i]);
+			// System.out.println(buffer[i]);
 		  sb.append(String.format("%02x", buffer[i] & 0xff));
 			// sb.append(buffer[i]);
 		}
 		String s=sb.toString();
 		// System.out.print(Integer.parseInt(s, 16));
-		System.out.println(" == "+s);
+		// System.out.println(" == "+s);
 		return Integer.parseInt(s, 16);
 }
+	public void ToImage(){
+		// System.out.println(buffer);
+		for (int i=0;i<buffer.length;i++){
+			// System.out.print(" "+buffer[i]);
+		}
+		System.out.println(buffer.length);
+		byte[] b = {-119, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
+		      0, 0, 0, 15, 0, 0, 0, 15, 8, 6, 0, 0, 0, 59, -42, -107,
+		      74, 0, 0, 0, 64, 73, 68, 65, 84, 120, -38, 99, 96, -64, 14, -2,
+		      99, -63, 68, 1, 100, -59, -1, -79, -120, 17, -44, -8, 31, -121, 28, 81,
+		      26, -1, -29, 113, 13, 78, -51, 100, -125, -1, -108, 24, 64, 86, -24, -30,
+		      11, 101, -6, -37, 76, -106, -97, 25, 104, 17, 96, -76, 77, 97, 20, -89,
+		      109, -110, 114, 21, 0, -82, -127, 56, -56, 56, 76, -17, -42, 0, 0, 0,
+		      0, 73, 69, 78, 68, -82, 66, 96, -126};
+		try {
+			InputStream in = new ByteArrayInputStream(buffer);
+			BufferedImage bImageFromConvert = ImageIO.read(in);
+			ImageIO.write(bImageFromConvert, "jpg", new File(
+						"image.jpg"));
+
+			} catch (IOException e) {
+				// System.out.println(e.getMessage());
+			}
+
+
+	}
 
 }
