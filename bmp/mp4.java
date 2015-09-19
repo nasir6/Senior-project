@@ -1,14 +1,3 @@
-import java.io.*;
-import java.util.*;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import javax.imageio.ImageIO;
-import java.awt.Image;
-import java.awt.image.BufferedImage;
-import org.jcodec.api.FrameGrab;
-
 public class mp4{
 	int ReadBox(String boxId, int offSet){
 		String filename = "mp4.mp4";
@@ -32,7 +21,6 @@ public class mp4{
 				} else{
 					offSet=offSet+size;
 				}
-				
 			// count--;
 			if(type.equals(boxId)){
 				// System.out.println(offSet);
@@ -46,12 +34,10 @@ public class mp4{
 		return offSet-size;
 	}
 	public static void main(String args[]){
-		int frameNumber = 150;
-		BufferedImage frame = FrameGrab.getFrame(new File("mp4.mp4"), frameNumber);
-		ImageIO.write(frame, "png", new File("frame_150.png"));
+		
 
 
-
+		
 		mp4 test = new mp4();
 		int ret = test.ReadBox("moov",0);
 		// System.out.println(ret);
@@ -96,19 +82,26 @@ public class mp4{
 		ReadFile firstSample = new ReadFile(ret+8 + 4+4+4, 4,"mp4.mp4", "information[i]");
 		firstSample.readBytes();
 		System.out.println("firstSample Size == "+firstSample.ToDECIMAL());
+		/// stss key frame 
+		ret = test.ReadBox("stss",stblOffset+8);
+		ReadFile keyFrame = new ReadFile(ret+8 + 4, 4,"mp4.mp4", "information[i]");
+		keyFrame.readBytes();
+		System.out.println("Number of keyFrame = "+keyFrame.ToDECIMAL());
 
-		ReadFile image = new ReadFile(chunkOffset.ToDECIMAL()+8, firstSample.ToDECIMAL(),"mp4.mp4", "information[i]");
-		image.readBytes();
-		image.ToImage();
-		// System.out.println("firstSample Size == "+image.ToDECIMAL());
-
-
-
-
-
-
-
-
+		ReadFile keyFrameOffset = new ReadFile(ret+8 + 4+4, 4,"mp4.mp4", "information[i]");
+		keyFrameOffset.readBytes();
+		System.out.println("offSet of keyFrame = "+keyFrameOffset.ToDECIMAL());
 		
+		
+
+
+		ReadFile image = new ReadFile(chunkOffset.ToDECIMAL(),4,"mp4.mp4", "information[i]");
+		// ReadFile image = new ReadFile(chunkOffset.ToDECIMAL(), firstSample.ToDECIMAL(),"mp4.mp4", "information[i]");
+		image.readBytes();
+
+		// image.ToImage();
+		// image.ToDECIMAL();
+		System.out.println("Relative Time == "+image.ToDECIMAL());	
+
 	}
 }
