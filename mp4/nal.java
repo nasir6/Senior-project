@@ -45,6 +45,8 @@ public class nal
 		if(headerBits.charAt(1)=='0'&&headerBits.charAt(2)=='0'){
 			System.out.println("nal unit can be discarded");
 			// return;
+		} else{
+			System.out.println("nal_ref_idc == "+headerBits.charAt(1)+" "+headerBits.charAt(2));
 		}
 		nal_unit_type = Integer.parseInt(""+headerBits.charAt(3)+headerBits.charAt(4)+headerBits.charAt(5)+headerBits.charAt(6)+headerBits.charAt(7),2);
 		System.out.println("type == "+nal_unit_type);
@@ -69,6 +71,7 @@ public class nal
 		}
 		nalOffSet = nalOffSet+nalUnitHeaderBytes;
 		rbsp_byte = new byte[length-nalUnitHeaderBytes];
+		// System.out.println(rbsp_byte.length);
 		for(int i=nalUnitHeaderBytes;i<length;i++){
 			// if(i+2<NumBytesInNALunit && next_bits( 24 ) == 0x000003){
 				// rbsp_byte[NumBytesInRBSP++];
@@ -80,29 +83,20 @@ public class nal
 				readByte.readBytes();
 				// length = nallenght.ToDECIMAL();
 				rbsp_byte[NumBytesInRBSP++]=readByte.Getbyte();
-				System.out.print(""+readByte.ToASCII());
+				// System.out.print(""+readByte.ToASCII());
 				nalOffSet=nalOffSet+1;
 
 			// }
 		}
+		NumBytesInRBSP=0;
 	}
 	public void nal_unit(){
 		
 
 	}
-	// for(int i=nalUnitHeaderBytes;i<NumBytesInNALunit;i++){
-	// 	if(i+2<NumBytesInNALunit && next_bits( 24 ) == 0x000003){
-	// 		rbsp_byte[NumBytesInRBSP++];
-	// 		rbsp_byte[NumBytesInRBSP++];
-	// 		i=i+2;
-	// 		emulation_prevention_three_byte equal to 0x000003
-	// 	}else{
-	// 		rbsp_byte[NumBytesInRBSP++];
-
-	// 	}
-	// }
 	public static void main(String args[]){
 		nal test = new nal();
+		test.parseNalUnit();
 		test.parseNalUnit();
 	}
 
