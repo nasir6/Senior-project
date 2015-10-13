@@ -11,13 +11,12 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 public class ReadFile{
 	int offset, length;
-	String filename, description;
+	String filename;
 	byte[] buffer;
-	ReadFile(int _offset, int _length, String _filename, String _description) {
+	ReadFile(int _offset, int _length, String _filename) {
 		offset = _offset;
 		length = _length;
 		filename = _filename;
-		description = _description;
 		buffer = new byte[length];
 	}
 	public void readBytes() {
@@ -37,6 +36,23 @@ public class ReadFile{
 	public byte Getbyte(){
 		return buffer[0];
 	}
+	public byte[] Getbytes(){
+		return buffer;
+	}
+	
+	public int ReadBit(byte[] dataStream, int n) {
+
+		int byte_offset = n/8; 
+		int bit_offset = n%8;
+		byte valByte = dataStream[byte_offset];
+		int valInt = valByte>>(8-(bit_offset+1)) & 0x0001;
+		return valInt;
+	}
+	// public int ExpGolombDecode(byte[] dataStream,int currentOffset){
+		
+	// }
+
+
  	public String ToASCII(){
 		try{
 			String result = new String(buffer, "ASCII");

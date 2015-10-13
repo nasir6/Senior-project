@@ -2,6 +2,15 @@
  // F: 1 bit forbidden_zero_bit. The H.264 specification declares a value of 1 as a syntax violation.
  //  NRI:     2 bits nal_ref_idc.  A value of 00 indicates that the content of the NAL unit is not used to reconstruct reference pictures for inter picture prediction.  Such NAL units can be discarded without risking the integrity of the reference pictures.  Values greater than 00 indicate that the decoding of the NAL unit is required to maintain the integrity of the reference pictures.
 
+//
+
+
+// nal_ref_idc shall not be equal to 0 for NAL units with nal_unit_type equal to 5.
+// nal_ref_idc shall be equal to 0 for all NAL units having nal_unit_type equal to 6, 9, 10, 11, or 12.
+//nal_unit_type specifies the type of RBSP data structure contained in the NAL unit as specified in Table 7-1.
+
+
+// The slice header syntax is discussed on page 36 (section 7.3.3) of the H.264 standard.
 
 
 
@@ -28,13 +37,19 @@ public class nal
 	int NumBytesInNALunit;
 	public void parseNalUnit(){
 
-		ReadFile nallenght = new ReadFile(nalOffSet, NAL_Unit_length_size,fileName, "information[i]");
+		// ReadFile nalunit = new ReadFile(nalOffSet, NAL_Unit_length_size,fileName, "information[i]");
+		// nalunit.readBytes();
+		// byte[] s = nalunit.Getbytes();
+		// parser p = new parser(s);
+		// int ret = p.readBits(32);
+		// System.out.println("parser ret ===-=  "+ret);
+		ReadFile nallenght = new ReadFile(nalOffSet, NAL_Unit_length_size,fileName);
 		nallenght.readBytes();
 		length = nallenght.ToDECIMAL();
 		System.out.println("length = "+length);
 		nalOffSet=nalOffSet+NAL_Unit_length_size;
 
-		ReadFile nalHeader = new ReadFile(nalOffSet, nalUnitHeaderBytes,fileName, "information[i]");
+		ReadFile nalHeader = new ReadFile(nalOffSet, nalUnitHeaderBytes,fileName);
 		nalHeader.readBytes();
 		String headerBits = nalHeader.TobitString();
 		if(headerBits.charAt(0)=='0'){
@@ -73,31 +88,41 @@ public class nal
 		rbsp_byte = new byte[length-nalUnitHeaderBytes];
 		// System.out.println(rbsp_byte.length);
 		for(int i=nalUnitHeaderBytes;i<length;i++){
+				ReadFile next_bits = new ReadFile(nalOffSet, 3,fileName);
+				next_bits.readBytes();
+				if(next_bits.ToHex().equals("000003")){
+					System.out.println("emulation_prevention_three_byte ");
+				}
 			// if(i+2<NumBytesInNALunit && next_bits( 24 ) == 0x000003){
 				// rbsp_byte[NumBytesInRBSP++];
 				// rbsp_byte[NumBytesInRBSP++];
 				// i=i+2;
 				// emulation_prevention_three_byte equal to 0x000003
 			// }else{
-				ReadFile readByte = new ReadFile(nalOffSet, 1,fileName, "information[i]");
+				ReadFile readByte = new ReadFile(nalOffSet, 1,fileName);
 				readByte.readBytes();
 				// length = nallenght.ToDECIMAL();
 				rbsp_byte[NumBytesInRBSP++]=readByte.Getbyte();
-				// System.out.print(""+readByte.ToASCII());
+				// System.out.print(""+readByte.ToHex());
 				nalOffSet=nalOffSet+1;
 
 			// }
 		}
 		NumBytesInRBSP=0;
 	}
-	public void nal_unit(){
-		
 
-	}
+	// public void parseSlice(Slice slice_1){
+
+	// }
 	public static void main(String args[]){
+		mp4 mp4_0=new mp4();
 		nal test = new nal();
 		test.parseNalUnit();
 		test.parseNalUnit();
+
+		sps sps0 = new sps(mp4_0.spsData);
+		pps pps0=new pps(mp4_0.ppsData);
+		// Slice s1=new Slice(test.rbsp_byte,sps0,pps0);
 	}
 
 }
