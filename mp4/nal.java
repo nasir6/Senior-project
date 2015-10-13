@@ -4,7 +4,7 @@
 
 //
 
-
+kkllklk
 // nal_ref_idc shall not be equal to 0 for NAL units with nal_unit_type equal to 5.
 // nal_ref_idc shall be equal to 0 for all NAL units having nal_unit_type equal to 6, 9, 10, 11, or 12.
 //nal_unit_type specifies the type of RBSP data structure contained in the NAL unit as specified in Table 7-1.
@@ -119,10 +119,12 @@ public class nal
 		nal test = new nal();
 		test.parseNalUnit();
 		test.parseNalUnit();
+		// if(test.nal_unit_type==5){
 
+		// }
 		sps sps0 = new sps(mp4_0.spsData);
 		pps pps0=new pps(mp4_0.ppsData);
-		// Slice s1=new Slice(test.rbsp_byte,sps0,pps0);
+		Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test);
 	}
 
 }
