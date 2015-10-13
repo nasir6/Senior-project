@@ -36,6 +36,15 @@ public class Slice{
 	int slice_beta_offset_div2;//sev
 	int slice_group_change_cycle; //uv
 
+
+	Slice(byte[] rbsp,sps sps_,pps pps_,nal nal_0){
+		sps0=sps_;
+		pps0=pps_;
+		nal0=nal_0;
+		p=new parser(rbsp);
+		slice_layer_without_partitioning_rbsp();
+	}
+
 	// delta_pic_order_cnt[0]
 
 	// first_mb_in_slice specifies the address of the first macroblock in the slice.
@@ -199,13 +208,8 @@ public class Slice{
 	}
 	public void slice_layer_without_partitioning_rbsp(){
 		slice_header();	
-	}
-	Slice(byte[] rbsp,sps sps_,pps pps_,nal nal_0){
-		sps0=sps_;
-		pps0=pps_;
-		nal0=nal_0;
-		p=new parser(rbsp);
-		slice_layer_without_partitioning_rbsp();
+		// slice_data();  // all categories of slice data syntax
+		// rbsp_slice_trailing_bits(); // 
 	}
 
 }

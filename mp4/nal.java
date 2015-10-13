@@ -4,7 +4,7 @@
 
 //
 
-kkllklk
+// kkllklk
 // nal_ref_idc shall not be equal to 0 for NAL units with nal_unit_type equal to 5.
 // nal_ref_idc shall be equal to 0 for all NAL units having nal_unit_type equal to 6, 9, 10, 11, or 12.
 //nal_unit_type specifies the type of RBSP data structure contained in the NAL unit as specified in Table 7-1.
@@ -24,7 +24,7 @@ public class nal
 {
 	int NAL_Unit_length_size=4;
 	int length;
-	int nalOffSet = 48;
+	int nalOffSet = 48; /// hard code .....sumran 
 	String fileName = "mp4.mp4";
 	int forbidden_zero_bit; //f1
 	int nal_ref_idc; //u2
@@ -124,7 +124,8 @@ public class nal
 		// }
 		sps sps0 = new sps(mp4_0.spsData);
 		pps pps0=new pps(mp4_0.ppsData);
-		Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test);
+		Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test); // test.rbsp_byte ka kea
+		//  maqsad hai(jab test pass kar diya hai ,  .....sumran )
 	}
 
 }
