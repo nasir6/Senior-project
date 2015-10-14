@@ -36,6 +36,19 @@ public class Slice{
 	int slice_beta_offset_div2;//sev
 	int slice_group_change_cycle; //uv
 
+	// slice data variables 
+	int cabac_alignment_one_bit;
+	boolean MbaffFrameFlag; // used for CurrMbAddress address calculation . sumran
+							// saw the formulae for the C file found later, 
+							// MbaffFrameFlag = sps0.mb_adaptive_frame_field_flag
+							// && (fieldpicFlag == 0 )
+	int CurrMbAddress;      // needed extensively for parsing slice data
+	boolean moreDataFlag; // could not find it in standard ...  sumran 
+	boolean prevMbSkipped; // could not find it in standart .. sumran
+	int mb_skip_run;
+	int mb_field_decoding_flag;
+
+
 
 	Slice(byte[] rbsp,sps sps_,pps pps_,nal nal_0){
 		sps0=sps_;
@@ -44,50 +57,56 @@ public class Slice{
 		p=new parser(rbsp);
 		slice_layer_without_partitioning_rbsp();
 	}
+	public void slice_layer_without_partitioning_rbsp(){
+		slice_header();	
+		slice_data();
+		  // all categories of slice data syntax
+		// rbsp_slice_trailing_bits(); // 
+	}
 
-	// delta_pic_order_cnt[0]
+/*	delta_pic_order_cnt[0]
+	first_mb_in_slice specifies the address of the first macroblock in the slice.
+	The first macroblock address of the slice is derived as follows:
+	– If MbaffFrameFlag is equal to 0, first_mb_in_slice is the macroblock address of 
+	the first macroblock in the slice, and first_mb_in_slice shall be in the range of 0 to PicSizeInMbs − 1, inclusive.
+	– Otherwise (MbaffFrameFlag is equal to 1), first_mb_in_slice * 2 is the macroblock address of 
+	the first macroblock in the slice, which is the top macroblock of the first macroblock pair in the slice, 
+	and first_mb_in_slice shall be in the range of 0 to PicSizeInMbs / 2 − 1, inclusive.
+	slice_type Name of slice_type
+	0	P (P slice)
+	1	B (B slice)
+	2	I (I slice)
+	3	SP (SP slice)
+	4	SI (SI slice)
+	5	P (P slice)
+	6	B (B slice)
+	7	I (I slice)
+	8	SP (SP slice)
+	9	SI (SI slice)
 
-	// first_mb_in_slice specifies the address of the first macroblock in the slice.
-// 	The first macroblock address of the slice is derived as follows:
-// – If MbaffFrameFlag is equal to 0, first_mb_in_slice is the macroblock address of 
-// the first macroblock in the slice, and first_mb_in_slice shall be in the range of 0 to PicSizeInMbs − 1, inclusive.
-// – Otherwise (MbaffFrameFlag is equal to 1), first_mb_in_slice * 2 is the macroblock address of 
-// the first macroblock in the slice, which is the top macroblock of the first macroblock pair in the slice, 
-// and first_mb_in_slice shall be in the range of 0 to PicSizeInMbs / 2 − 1, inclusive.
-// slice_type Name of slice_type
-// 0	P (P slice)
-// 1	B (B slice)
-// 2	I (I slice)
-// 3	SP (SP slice)
-// 4	SI (SI slice)
-// 5	P (P slice)
-// 6	B (B slice)
-// 7	I (I slice)
-// 8	SP (SP slice)
-// 9	SI (SI slice)
+ 	When nal_unit_type is equal to 5 (IDR picture), slice_type shall be equal to 2, 4, 7, or 9.
+	pic_parameter_set_id specifies the picture parameter set in use. 
+	The value of pic_parameter_set_id shall be in the range of 0 to 255, inclusive.
+	colour_plane_id specifies the colour plane associated with the current slice RBSP 
+	when separate_colour_plane_flag is equal to 1. The value of colour_plane_id 
+	shall be in the range of 0 to 2, inclusive. colour_plane_id equal to 0, 1, and 2 correspond to the Y, Cb, and Cr planes, respectively.
+	NOTE 2 – There is no dependency between the decoding processes of pictures having 
+	different values of colour_plane_id.
+	frame_num is used as an identifier for pictures and shall be represented by 
+	log2_max_frame_num_minus4 + 4 bits in the bitstream. frame_num is constrained as follows:
 
- // When nal_unit_type is equal to 5 (IDR picture), slice_type shall be equal to 2, 4, 7, or 9.
-	// pic_parameter_set_id specifies the picture parameter set in use. 
-	// The value of pic_parameter_set_id shall be in the range of 0 to 255, inclusive.
-// 	colour_plane_id specifies the colour plane associated with the current slice RBSP 
-// 	when separate_colour_plane_flag is equal to 1. The value of colour_plane_id 
-// 	shall be in the range of 0 to 2, inclusive. colour_plane_id equal to 0, 1, and 2 correspond to the Y, Cb, and Cr planes, respectively.
-// NOTE 2 – There is no dependency between the decoding processes of pictures having 
-// different values of colour_plane_id.
-// frame_num is used as an identifier for pictures and shall be represented by 
-// log2_max_frame_num_minus4 + 4 bits in the bitstream. frame_num is constrained as follows:
-
-// slice_layer_without_partitioning_rbsp( ) {
-// C
-// Descriptor
-// slice_header( )
-// 2
-// slice_data( ) /* all categories of slice_data( ) syntax */
-// 2 | 3 | 4
-// rbsp_slice_trailing_bits( )
-// 2
-// }
-	public void slice_header(){
+	slice_layer_without_partitioning_rbsp( ) {
+	C
+	Descriptor
+	slice_header( )
+	2
+	slice_data( )  all categories of slice_data( ) syntax 
+	2 | 3 | 4
+	rbsp_slice_trailing_bits( )
+	2
+	}
+*/
+	public void slice_header(){ 
 		first_mb_in_slice = p.ExpGolombDecode();
 		System.out.println("first_mb_in_slice " + first_mb_in_slice);
 		slice_type = p.ExpGolombDecode();
@@ -206,13 +225,95 @@ public class Slice{
 			// System.out.println("false");
 		}
 	}
-	public void slice_layer_without_partitioning_rbsp(){
-		slice_header();	
-		// slice_data();  // all categories of slice data syntax
-		// rbsp_slice_trailing_bits(); // 
+	
+
+	public int NextMbAddress(int n) { // used im slice data , taken from
+			
+
+										// section 8.2.2
+		// to be used when we cross the I slice thing 
+		// i = n + 1;  
+		// while(i < PicSizeInMbs && MbToSliceGroupMap[i] != MbToSliceGroupMap[n]) {
+		// 	i++;
+		// }
+		return 1;
 	}
 
+	public void slice_data() {
+		// System.out.println("lul insaan ");
+		if(pps0.entropy_coding_mode_flag) {
+			// it wont go to if for now becuase flag is false
+			while(! p.byte_aligned()) {
+				cabac_alignment_one_bit = p.ExpGolombDecode();
+			} 
+		}
+		MbaffFrameFlag = sps0.mb_adaptive_frame_field_flag && (field_pic_flag == false);
+		CurrMbAddress = first_mb_in_slice * ( (MbaffFrameFlag ? 1 : 0) + 1 ); // bool to 
+																		// int conversion 
+		moreDataFlag = true;
+		prevMbSkipped = false;
+		do {
+
+			if((slice_type != 2 || slice_type != 7) && 
+					(slice_type != 4 || slice_type != 9)) {  
+										
+ 				if(! pps0.entropy_coding_mode_flag) {
+					mb_skip_run = p.ExpGolombDecode();
+					prevMbSkipped = (mb_skip_run > 0);
+					for(int i = 0; i < mb_skip_run; i++) {
+						CurrMbAddress = NextMbAddress(CurrMbAddress);
+					}
+					if(mb_skip_run > 0) {
+						moreDataFlag = p.more_rbsp_data();
+					}
+				} else {
+					// mb_skip_flag // aev read cant do right now ..surman 
+					// more_rbsp_data = !mb_skip_flag;
+				}
+				// incomplete becuase we are still dealing with I type slice 
+			}
+			if(moreDataFlag) {
+				if(MbaffFrameFlag && (CurrMbAddress % 2 == 0 ||
+					 (CurrMbAddress % 2 == 1 && prevMbSkipped))) {
+					mb_field_decoding_flag = p.readBits(1); //
+											// u(1) readBits() kyn hai . sumran 
+				}
+				macroblock_layer();  
+			}
+			if(! pps0.entropy_coding_mode_flag) {
+				moreDataFlag = p.more_rbsp_data();
+			} else {
+				 
+				if((slice_type != 2 || slice_type != 7) && 
+						(slice_type != 4 || slice_type != 9)) {
+
+					// prevMbSkipped = mb_skip_flag; // aev so cant do it now sumran 
+				}
+				if(MbaffFrameFlag && CurrMbAddress % 2 == 0){
+					moreDataFlag = true;
+
+				} else {
+					// 	end_of_slice_flag = entrpy coding .. (ae(v)); entropy coding // 
+					// moreDataFlag = !end_of_slice_flag;
+				}	
+			}
+			CurrMbAddress = NextMbAddress(CurrMbAddress);
+
+		} while(moreDataFlag);
+	}
+		
+	public void macroblock_layer() {
+		// unimplemented
+
+	}
+
+
+
+
 }
+
+
+
 
 
 

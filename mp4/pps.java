@@ -28,9 +28,11 @@ public class pps{
 	boolean pic_scaling_list_present_flag[];
 	int second_chroma_qp_index_offset;//sev
 	byte pps_set[];
-	pps(){}
+	pps(){} // khali constructor ka kea kaam hai ...... sumran 
+
+
 	pps(byte pps_set_0[]){
-		pps_set=pps_set_0;
+		pps_set=pps_set_0; // is ka kea maqsad hai , ......sumran 
 		parser p1 = new parser(pps_set);
 
 		pic_parameter_set_id = p1.ExpGolombDecode();

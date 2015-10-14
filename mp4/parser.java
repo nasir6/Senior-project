@@ -1,33 +1,30 @@
-	public class parser{
+public class parser{
 		int pointer;
 		byte[] bytestream;
-		// *function to be implemented
-	public boolean byte_aligned(){
-		return true;
-}
 	parser(byte[] array){
 		bytestream=array;
 		// System.out.println("constructer initilized");
 		pointer=0;
 	}
-	//If the current position in the bitstream is on a byte boundary, i.e., the next bit in the bitstream is the first bit in a byte, the return value of byte_aligned( ) is equal to TRUE.
-// – Otherwise, the return value of byte_aligned( ) is equal to FALSE.
-	public boolean more_rbsp_data(){
-		return true;
+	public boolean byte_aligned(){
+		System.out.println("bohat hi lame zindagi hai" + pointer % 8);
+		return (pointer % 8 == 0 ? true : false);
+		// 
+		// *function to be implemented
+		//If the current position in the bitstream is on a byte boundary, 
+	// i.e., the next bit in the bitstream is the first bit in a byte, 
+	// the return value of byte_aligned( ) is equal to TRUE.
+	// – Otherwise, the return value of byte_aligned( ) is equal to FALSE.	
 	}
-	public boolean getBit(){
-		int byte_offset = pointer/8; 
-		int bit_offset = pointer%8;
-		byte valByte = bytestream[byte_offset];
-		int valInt = valByte>>(8-(bit_offset+1)) & 0x0001;
-		pointer+=1;
-		if (valInt==1) {
+	public boolean more_rbsp_data(){
+		if(byte_aligned() && pointer / 8 == bytestream.length) {
 			return true;
-		} else{
+		} else {
 			return false;
 		}
+		//  need to think what to do if not byte alligned , ... sumran 
 	}
-/*
+		/*
 	/If there is no more data in the RBSP, the return value of more_rbsp_data( ) is equal to FALSE.
 	– Otherwise, the RBSP data is searched for the last (least significant, right-most) bit equal to 1 that is present in the RBSP. Given the position of this bit, which is the first bit (rbsp_stop_one_bit) of the rbsp_trailing_bits( ) syntax structure, the following applies:
 	– If there is more data in an RBSP before the rbsp_trailing_bits( ) syntax structure, the return value of more_rbsp_data( ) is equal to TRUE.
@@ -39,8 +36,25 @@
 
 	// reads nth bit from bytestream;
 */
+		
+	public boolean getBit(){
+		int byte_offset = pointer/8; 
+		int bit_offset = pointer%8;
+		byte valByte = bytestream[byte_offset];
+		int valInt = valByte>>(8-(bit_offset+1)) & 0x0001;
+		//   yeah ooper kea yaain hai explain kar ...... sumran... 
+		pointer+=1;
+		// sirf val int kyn nae return karwa daita ........sumran
+		if (valInt==1) {
+			return true;
+		} else{
+			return false;
+		}
+	}
+
 
 	public int ReadBit(int n) {
+		// ReadBit or getBit main farq kea hai ....... sumran 
 
 		int byte_offset = n/8; 
 		int bit_offset = n%8;
@@ -64,6 +78,7 @@
 	When used within the byte stream as specified in Annex B, next_bits( n ) returns a value of 0 
 	if fewer than n bits remain within the byte stream.*/
 	public int readBits(int n){
+		//  nextBit or Read Bits main kea farq hai //// ...... sumran 
 		int ret = nextBits(n);
 		pointer = pointer+n;
 		return ret;

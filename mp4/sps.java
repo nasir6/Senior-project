@@ -43,7 +43,11 @@ public class sps{
 
 	boolean vui_parameters_present_flag; //u1
 	byte seq_parameter_set[];
+
+	// kea purpose hai khali constructor ka .......sumran 
+
 	sps(){}
+	
 	sps(byte spsSet[]){
 		System.out.println(spsSet[0]);
 		// System.out.println(Hex.encodeHexString(spsSet));
@@ -52,7 +56,7 @@ public class sps{
 		// 	System.out.println("sps "  +result);
 		// }catch(Exception e)
 		// {}
-		seq_parameter_set=spsSet;
+		seq_parameter_set=spsSet;// is ko equal karna ka kea maqsad hai . ....sumran 
 		parser p1= new parser(seq_parameter_set);
 		profile_idc=p1.readBits(8); //u8
 		constraint_set0_flag=p1.getBit();//u1
