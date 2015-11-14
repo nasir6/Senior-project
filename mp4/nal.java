@@ -1,16 +1,4 @@
 
- // F: 1 bit forbidden_zero_bit. The H.264 specification declares a value of 1 as a syntax violation.
- //  NRI:     2 bits nal_ref_idc.  A value of 00 indicates that the content of the NAL unit is not used to reconstruct reference pictures for inter picture prediction.  Such NAL units can be discarded without risking the integrity of the reference pictures.  Values greater than 00 indicate that the decoding of the NAL unit is required to maintain the integrity of the reference pictures.
-
-//
-
-// kkllklk
-// nal_ref_idc shall not be equal to 0 for NAL units with nal_unit_type equal to 5.
-// nal_ref_idc shall be equal to 0 for all NAL units having nal_unit_type equal to 6, 9, 10, 11, or 12.
-//nal_unit_type specifies the type of RBSP data structure contained in the NAL unit as specified in Table 7-1.
-
-
-// The slice header syntax is discussed on page 36 (section 7.3.3) of the H.264 standard.
 
 
 
@@ -117,14 +105,14 @@ public class nal
 	public static void main(String args[]){
 		mp4 mp4_0=new mp4();
 		nal test = new nal();
-		test.parseNalUnit();
-		test.parseNalUnit();
+		// test.parseNalUnit();
+		// test.parseNalUnit();
 		// if(test.nal_unit_type==5){
 
 		// }
 		sps sps0 = new sps(mp4_0.spsData);
 		pps pps0=new pps(mp4_0.ppsData);
-		Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test); // test.rbsp_byte ka kea
+		// Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test); // test.rbsp_byte ka kea
 		//  maqsad hai(jab test pass kar diya hai ,  .....sumran )
 	}
 

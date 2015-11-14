@@ -1,12 +1,12 @@
-public class mp4{
+public class mp4Parser{
 	String filename = "mp4.mp4";
 	byte spsData[];
 	byte ppsData[];
 	int ReadBox(String boxId, int offSet){
 		int count =100;
 		int size=0;
-		String type;	
-		while(count>0){														
+		String type;
+		while(count>0){													
 			ReadFile boxSize = new ReadFile(offSet, 4, filename);
 			boxSize.readBytes();
 			ReadFile boxType = new ReadFile(offSet+4, 4, filename);
@@ -24,14 +24,10 @@ public class mp4{
 				break;
 			}
 		}
-
 		return offSet-size;
 	}
 	public void sampleInfo(int stsdOffset){
-		// ReadFile r1 = new ReadFile(stsdOffset, 4,filename);
-		// r1.readBytes();
-		// System.out.println("stsd size "+ r1.ToDECIMAL());
-		
+		// extarct first two nal units of sps and pps	
 		ReadFile r1 = new ReadFile(stsdOffset+8, 4,filename);
 		r1.readBytes();
 		System.out.println("stsd version "+ r1.ToDECIMAL());
@@ -51,11 +47,8 @@ public class mp4{
 		stsdOffset=stsdOffset+4;
 
 		int avccOffset = stsdOffset-8+ r1.ToDECIMAL();
-		// System.out.println(av);
-		// for (int i=0;i<120;i+=4 ) {
 		r1 = new ReadFile(stsdOffset, 4,filename);
 		r1.readBytes();
-		// System.out.println("stsd descriptions ASCII " +r1.ToASCII());
 		if(r1.ToASCII().equals("avc1")){
 			System.out.println("avc1 format");
 		}else{
@@ -128,15 +121,11 @@ public class mp4{
 			int seqParameterLength= r1.ToDECIMAL();
 			System.out.println("seq parameter length "+ seqParameterLength);
 			stsdOffset+=2;	
-			r1 = new ReadFile(stsdOffset+1, seqParameterLength-1,filename);
+			r1 = new ReadFile(stsdOffset, seqParameterLength,filename);
 			r1.readBytes();
 			System.out.println("numOfSeqParameterset "+ r1.ToHex());
 			spsData=r1.Getbytes();
-			// System.out.println();
-			// System.out.println("one byte == "+r1.Getbyte());
-			// System.out.println();
 			stsdOffset+=seqParameterLength;
-
 		}
 		r1 = new ReadFile(stsdOffset, 1,filename);
 		r1.readBytes();
@@ -151,7 +140,7 @@ public class mp4{
 			int picParameterLength= r1.ToDECIMAL();
 			System.out.println("pic parameter length "+ picParameterLength);
 			stsdOffset+=2;	
-			r1 = new ReadFile(stsdOffset+1, picParameterLength-1,filename);
+			r1 = new ReadFile(stsdOffset, picParameterLength,filename);
 			r1.readBytes();
 			System.out.println("numOfpicParameterset "+ r1.ToHex());
 			ppsData=r1.Getbytes();
@@ -165,6 +154,7 @@ public class mp4{
 		boxOffset = ReadBox("minf",boxOffset+8);
 		int stblOffset = ReadBox("stbl",boxOffset+8);
 		int stsdOffset = ReadBox("stsd",stblOffset+8);
+		// to get sps and pps
 		sampleInfo(stsdOffset);
 		// int avc1Offset = ReadBox("avc1",stsdOffset+8);
 		boxOffset = ReadBox("stsc",stblOffset+8);
@@ -212,11 +202,13 @@ public class mp4{
 		image.readBytes();
 		System.out.println("Relative Time == "+image.ToDECIMAL());		
 	}
-	mp4(){
+	mp4Parser(String filename_){
+		filename=filename_;
 		parseMp4();
 	}
-	// public static void main(String args[]){
-	// 	mp4 test = new mp4();
-	// 	test.parseMp4();
-	// }
+	public static void main(String args[]){
+		mp4Parser test = new mp4Parser("mp4.mp4");
+		test.parseMp4();
+
+	}
 }

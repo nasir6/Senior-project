@@ -1,0 +1,17 @@
+parsing initial information for decoding through a container format 
+	*.mp4 parser
+		get into moov box
+			find trak box
+				inside trak get mdia box
+					inside mdia get minf box
+						get offset for Stbl box in minf box
+							get stsd box offset in stbl box
+							get stsc box offset in stbl box
+							get stco box offset in stbl box
+							get stsz box offset in stbl box
+							get stss box offset in stbl box
+	
+
+	extract NAL units from mp4 container and send to NALU decoder
+
+		
