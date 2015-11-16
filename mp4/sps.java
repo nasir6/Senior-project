@@ -51,42 +51,42 @@ public class sps{
 	sps(byte spsSet[]){
 		seq_parameter_set=spsSet;//  
 		parser p1= new parser(seq_parameter_set);
-		System.out.println(seq_parameter_set.length);
+		// System.out.println(seq_parameter_set.length);
 		profile_idc=p1.readBits(8); //u8
-		System.out.println("profile_idc "+ profile_idc);
+		// System.out.println("profile_idc "+ profile_idc);
 		constraint_set0_flag=p1.getBit();//u1
 		constraint_set1_flag=p1.getBit();//u1
 		constraint_set2_flag=p1.getBit();//u1
 		constraint_set3_flag=p1.getBit();//u1
 		constraint_set4_flag=p1.getBit();//u1
 		constraint_set5_flag=p1.getBit();//u1
-		System.out.println("flags "+constraint_set0_flag+" "+constraint_set1_flag+" "+constraint_set2_flag+" "+constraint_set3_flag+" "
-			+constraint_set4_flag+" "+constraint_set5_flag+" ");
+		// System.out.println("flags "+constraint_set0_flag+" "+constraint_set1_flag+" "+constraint_set2_flag+" "+constraint_set3_flag+" "
+			// +constraint_set4_flag+" "+constraint_set5_flag+" ");
 		reserved_zero_2bits=p1.readBits(2); //u2
-		System.out.println("reserved_zero_2bits "+ reserved_zero_2bits);
+		// System.out.println("reserved_zero_2bits "+ reserved_zero_2bits);
 		level_idc=p1.readBits(8); //u8
-		System.out.println("level_idc "+level_idc);
+		// System.out.println("level_idc "+level_idc);
 		seq_parameter_set_id=p1.uev(); //uev
-		System.out.println("seq_parameter_set_id "+ seq_parameter_set_id);
+		// System.out.println("seq_parameter_set_id "+ seq_parameter_set_id);
 		if(profile_idc==100||profile_idc==110||profile_idc==122
 			||profile_idc==244||profile_idc==44||
 			profile_idc==83||profile_idc==86||profile_idc==118||
 			profile_idc==128||profile_idc==138||profile_idc==139||
 			profile_idc==134){
 			chroma_format_idc=p1.uev(); //uev
-			System.out.println("chroma_format_idc "+chroma_format_idc);
+			// System.out.println("chroma_format_idc "+chroma_format_idc);
 			if(chroma_format_idc==3){
 				separate_colour_plane_flag=p1.getBit();
 
 			}
 			bit_depth_luma_minus8=p1.uev();
-			System.out.println("bit_depth_luma_minus8 "+ bit_depth_luma_minus8);
+			// System.out.println("bit_depth_luma_minus8 "+ bit_depth_luma_minus8);
 			bit_depth_chroma_minus8=p1.uev();
-			System.out.println("bit_depth_chroma_minus8 "+bit_depth_chroma_minus8);
+			// System.out.println("bit_depth_chroma_minus8 "+bit_depth_chroma_minus8);
 			qpprime_y_zero_transform_bypass_flag=p1.getBit();
-			System.out.println("qpprime_y_zero_transform_bypass_flag "+ qpprime_y_zero_transform_bypass_flag);
+			// System.out.println("qpprime_y_zero_transform_bypass_flag "+ qpprime_y_zero_transform_bypass_flag);
 			seq_scaling_matrix_present_flag=p1.getBit();
-			System.out.println("seq_scaling_matrix_present_flag "+seq_scaling_matrix_present_flag);
+			// System.out.println("seq_scaling_matrix_present_flag "+seq_scaling_matrix_present_flag);
 			if(seq_scaling_matrix_present_flag){
 				int size = 0;
 				if(chroma_format_idc!=3){
@@ -108,9 +108,9 @@ public class sps{
 			}
 		}
 		log2_max_frame_num_minus4=p1.uev(); //uev
-		System.out.println("log2_max_frame_num_minus4 "+log2_max_frame_num_minus4);
+		// System.out.println("log2_max_frame_num_minus4 "+log2_max_frame_num_minus4);
 		pic_order_cnt_type=p1.uev(); //uev
-		System.out.println("pic_order_cnt_type "+pic_order_cnt_type);
+		// System.out.println("pic_order_cnt_type "+pic_order_cnt_type);
 		if(pic_order_cnt_type==0){
 			log2_max_pic_order_cnt_lsb_minus4=p1.uev();
 
@@ -128,23 +128,23 @@ public class sps{
 		}
 		// log2_max_pic_order_cnt_lsb_minus4=p1.ExpGolombDecode(); //uev
 		max_num_ref_frames=p1.uev(); //uev
-		System.out.println("max_num_ref_frames "+max_num_ref_frames);
+		// System.out.println("max_num_ref_frames "+max_num_ref_frames);
 		gaps_in_frame_num_value_allowed_flag=p1.getBit();//u1
-		System.out.println("gaps_in_frame_num_value_allowed_flag "+gaps_in_frame_num_value_allowed_flag);
+		// System.out.println("gaps_in_frame_num_value_allowed_flag "+gaps_in_frame_num_value_allowed_flag);
 		pic_width_in_mbs_minus_1=p1.uev(); //uev
-		System.out.println("pic_width_in_mbs_minus_1 "+pic_width_in_mbs_minus_1);
+		// System.out.println("pic_width_in_mbs_minus_1 "+pic_width_in_mbs_minus_1);
 		pic_height_in_map_units_minus_1=p1.uev(); //uev
-		System.out.println("pic_height_in_map_units_minus_1 "+pic_height_in_map_units_minus_1);
+		// System.out.println("pic_height_in_map_units_minus_1 "+pic_height_in_map_units_minus_1);
 		frame_mbs_only_flag=p1.getBit(); //u1
-		System.out.println("frame_mbs_only_flag "+frame_mbs_only_flag);
+		// System.out.println("frame_mbs_only_flag "+frame_mbs_only_flag);
 		if(!frame_mbs_only_flag){
 			mb_adaptive_frame_field_flag=p1.getBit();	
 		}
 
 		direct_8x8_inference_flag=p1.getBit();//u1
-		System.out.println("direct_8x8_inference_flag "+direct_8x8_inference_flag);
+		// System.out.println("direct_8x8_inference_flag "+direct_8x8_inference_flag);
 		frame_cropping_flag=p1.getBit();//u1
-		System.out.println("frame_cropping_flag "+frame_cropping_flag);
+		// System.out.println("frame_cropping_flag "+frame_cropping_flag);
 		if (frame_cropping_flag) {
 			frame_crop_left_offset=p1.uev();
 			frame_crop_right_offset=p1.uev();
@@ -154,7 +154,7 @@ public class sps{
 		}
 
 		vui_parameters_present_flag=p1.getBit(); //u1
-		System.out.println("vui_parameters_present_flag "+vui_parameters_present_flag);
+		// System.out.println("vui_parameters_present_flag "+vui_parameters_present_flag);
 		if(vui_parameters_present_flag){
 			//vui_parameters();
 		}

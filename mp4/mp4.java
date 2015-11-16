@@ -20,7 +20,7 @@ public class mp4{
 					offSet=offSet+size;
 				}
 			if(type.equals(boxId)){
-				System.out.println("found "+boxId);
+				// System.out.println("found "+boxId);
 				break;
 			}
 		}
@@ -34,12 +34,12 @@ public class mp4{
 		
 		ReadFile r1 = new ReadFile(stsdOffset+8, 4,filename);
 		r1.readBytes();
-		System.out.println("stsd version "+ r1.ToDECIMAL());
+		// System.out.println("stsd version "+ r1.ToDECIMAL());
 		stsdOffset=stsdOffset+4+8;
 		//4 bytes number of descriptions 
 		r1 = new ReadFile(stsdOffset, 4,filename);
 		r1.readBytes();
-		System.out.println("stsd descriptions " +r1.ToDECIMAL());
+		// System.out.println("stsd descriptions " +r1.ToDECIMAL());
 		stsdOffset=stsdOffset+4;
 		
 		// 4 bytes description length = long unsigned length
@@ -47,7 +47,7 @@ public class mp4{
 	
 		r1 = new ReadFile(stsdOffset, 4,filename);
 		r1.readBytes();
-		System.out.println("stsd descriptions length " +r1.ToDECIMAL());
+		// System.out.println("stsd descriptions length " +r1.ToDECIMAL());
 		stsdOffset=stsdOffset+4;
 
 		int avccOffset = stsdOffset-8+ r1.ToDECIMAL();
@@ -57,22 +57,22 @@ public class mp4{
 		r1.readBytes();
 		// System.out.println("stsd descriptions ASCII " +r1.ToASCII());
 		if(r1.ToASCII().equals("avc1")){
-			System.out.println("avc1 format");
+			// System.out.println("avc1 format");
 		}else{
-			System.out.println("not avc1 format");
+			// System.out.println("not avc1 format");
 		}
 		
 		stsdOffset=stsdOffset+16;
 		// 6 bytes reserved = 48-bit value set to zero
 		r1 = new ReadFile(stsdOffset, 6,filename);
 		r1.readBytes();
-		System.out.println("reserved zero bits "+r1.ToDECIMAL());
+		// System.out.println("reserved zero bits "+r1.ToDECIMAL());
 		stsdOffset+=6;
 		// 37 skip bytes
 		stsdOffset+=37;
 		r1 = new ReadFile(stsdOffset, 31,filename);
 		r1.readBytes();
-		System.out.println("Encoder info "+r1.ToASCII());
+		// System.out.println("Encoder info "+r1.ToASCII());
 		stsdOffset+=31;
 		// 2 bytes video pixel depth = short unsigned bit depth
   //                  - colors are 1 (Monochrome), 2 (4), 4 (16), 8 (256)
@@ -81,31 +81,31 @@ public class mp4{
 
 		r1 = new ReadFile(stsdOffset, 2,filename);
 		r1.readBytes();
-		System.out.println("video pixel depth "+ r1.ToDECIMAL());
+		// System.out.println("video pixel depth "+ r1.ToDECIMAL());
 		stsdOffset+=2;
 		r1 = new ReadFile(stsdOffset, 2,filename);
 		r1.readBytes();
-		System.out.println("video color table id  "+ r1.ToDECIMAL());
+		// System.out.println("video color table id  "+ r1.ToDECIMAL());
 		stsdOffset+=2;
-		System.out.println("avccOffset == "+avccOffset+" stsdOffset == "+stsdOffset);
+		// System.out.println("avccOffset == "+avccOffset+" stsdOffset == "+stsdOffset);
 		// for (int i=0;i<15 ;i++ ) {
 		stsdOffset-=4;
 		r1 = new ReadFile(stsdOffset, 1,filename);
 		r1.readBytes();
-		System.out.println("configuration version "+ r1.ToDECIMAL());
+		// System.out.println("configuration version "+ r1.ToDECIMAL());
 	// }
 		stsdOffset+=1;
 		r1 = new ReadFile(stsdOffset, 1,filename);
 		r1.readBytes();
-		System.out.println("profile indication  "+ r1.ToDECIMAL());
+		// System.out.println("profile indication  "+ r1.ToDECIMAL());
 		stsdOffset+=1;
 		r1 = new ReadFile(stsdOffset, 1,filename);
 		r1.readBytes();
-		System.out.println("profile compatibility "+ r1.ToDECIMAL());
+		// System.out.println("profile compatibility "+ r1.ToDECIMAL());
 		stsdOffset+=1;
 		r1 = new ReadFile(stsdOffset, 1,filename);
 		r1.readBytes();
-		System.out.println("avc level indication "+ r1.ToDECIMAL());
+		// System.out.println("avc level indication "+ r1.ToDECIMAL());
 		stsdOffset+=1;
 
 		r1 = new ReadFile(stsdOffset, 1,filename);
@@ -113,24 +113,24 @@ public class mp4{
 		String bits = r1.TobitString();
 		// System.out.println("bits "+bits);
 		int nalUnitLengthminusone = Integer.parseInt(""+bits.charAt(6)+bits.charAt(7), 2)+1;
-		System.out.println("nalunit length  "+ nalUnitLengthminusone);
+		// System.out.println("nalunit length  "+ nalUnitLengthminusone);
 		stsdOffset+=1;
 		r1 = new ReadFile(stsdOffset, 1,filename);
 		r1.readBytes();
 		bits = r1.TobitString();
 		// System.out.println("bits "+bits);
 		int numOfSeqParametersets = Integer.parseInt(""+bits.charAt(3)+bits.charAt(4)+bits.charAt(5)+bits.charAt(6)+bits.charAt(7), 2);
-		System.out.println("numOfSeqParametersets  "+ numOfSeqParametersets);
+		// System.out.println("numOfSeqParametersets  "+ numOfSeqParametersets);
 		stsdOffset+=1;
 		for (int sps=0;sps<numOfSeqParametersets ;sps++ ) {
 			r1 = new ReadFile(stsdOffset, 2,filename);
 			r1.readBytes();
 			int seqParameterLength= r1.ToDECIMAL();
-			System.out.println("seq parameter length "+ seqParameterLength);
+			// System.out.println("seq parameter length "+ seqParameterLength);
 			stsdOffset+=2;	
 			r1 = new ReadFile(stsdOffset+1, seqParameterLength-1,filename);
 			r1.readBytes();
-			System.out.println("numOfSeqParameterset "+ r1.ToHex());
+			// System.out.println("numOfSeqParameterset "+ r1.ToHex());
 			spsData=r1.Getbytes();
 			// System.out.println();
 			// System.out.println("one byte == "+r1.Getbyte());
@@ -141,7 +141,7 @@ public class mp4{
 		r1 = new ReadFile(stsdOffset, 1,filename);
 		r1.readBytes();
 		int numOfPictureParameterSets = r1.ToDECIMAL();
-		System.out.println("numOfPictureParameterSets "+ numOfPictureParameterSets);
+		// System.out.println("numOfPictureParameterSets "+ numOfPictureParameterSets);
 		stsdOffset+=1;
 
 		for (int pps = 0; pps<numOfPictureParameterSets;pps++ ) {
@@ -149,11 +149,11 @@ public class mp4{
 			r1 = new ReadFile(stsdOffset, 2,filename);
 			r1.readBytes();
 			int picParameterLength= r1.ToDECIMAL();
-			System.out.println("pic parameter length "+ picParameterLength);
+			// System.out.println("pic parameter length "+ picParameterLength);
 			stsdOffset+=2;	
 			r1 = new ReadFile(stsdOffset+1, picParameterLength-1,filename);
 			r1.readBytes();
-			System.out.println("numOfpicParameterset "+ r1.ToHex());
+			// System.out.println("numOfpicParameterset "+ r1.ToHex());
 			ppsData=r1.Getbytes();
 			stsdOffset+=picParameterLength;	
 		}
@@ -170,47 +170,47 @@ public class mp4{
 		boxOffset = ReadBox("stsc",stblOffset+8);
 		ReadFile chunkCount = new ReadFile(boxOffset+8 + 4, 4,filename);
 		chunkCount.readBytes();
-		System.out.println(chunkCount.ToDECIMAL());
+		// System.out.println(chunkCount.ToDECIMAL());
 		ReadFile firstChunk = new ReadFile(boxOffset+8 + 4 + 4, 4,filename);
 		firstChunk.readBytes();
-		System.out.println(firstChunk.ToDECIMAL());
+		// System.out.println(firstChunk.ToDECIMAL());
 		ReadFile samplePerChunk = new ReadFile(boxOffset+8 + 4 + 4 + 4, 4,filename);
 		samplePerChunk.readBytes();
-		System.out.println(samplePerChunk.ToDECIMAL());
+		// System.out.println(samplePerChunk.ToDECIMAL());
 		ReadFile sDI = new ReadFile(boxOffset+8 + 4 + 4 + 4 + 4, 4,filename);
 		sDI.readBytes();
-		System.out.println(sDI.ToDECIMAL());
+		// System.out.println(sDI.ToDECIMAL());
 		boxOffset = ReadBox("stco" ,stblOffset + 8);
 		ReadFile chunkCount1 = new ReadFile(boxOffset+8 + 4, 4,filename);
 		chunkCount1.readBytes();
-		System.out.println(chunkCount1.ToDECIMAL());
+		// System.out.println(chunkCount1.ToDECIMAL());
 		int n = 4;
 		ReadFile chunkOffset = new ReadFile(boxOffset+8 + 4 +n, 4,filename);
 		chunkOffset.readBytes();
-		System.out.println("chunkOffset == "+chunkOffset.ToDECIMAL());
+		// System.out.println("chunkOffset == "+chunkOffset.ToDECIMAL());
 		n=n+4;
 		boxOffset = ReadBox("stsz" ,stblOffset + 8);
 		ReadFile sampleSize = new ReadFile(boxOffset+8 + 4, 4,filename);
 		sampleSize.readBytes();
-		System.out.println(sampleSize.ToDECIMAL());
+		// System.out.println(sampleSize.ToDECIMAL());
 		ReadFile sampleCount = new ReadFile(boxOffset+8 + 4+4, 4,filename);
 		sampleCount.readBytes();
-		System.out.println(sampleCount.ToDECIMAL());
+		// System.out.println(sampleCount.ToDECIMAL());
 		ReadFile firstSample = new ReadFile(boxOffset+8 + 4+4+4, 4,filename);
 		firstSample.readBytes();
-		System.out.println("firstSample Size == "+firstSample.ToDECIMAL());
+		// System.out.println("firstSample Size == "+firstSample.ToDECIMAL());
 		/// stss key frame 
 		boxOffset = ReadBox("stss",stblOffset+8);
 		ReadFile keyFrame = new ReadFile(boxOffset+8 + 4, 4,filename);
 		keyFrame.readBytes();
-		System.out.println("Number of keyFrame = "+keyFrame.ToDECIMAL());
+		// System.out.println("Number of keyFrame = "+keyFrame.ToDECIMAL());
 
 		ReadFile keyFrameOffset = new ReadFile(boxOffset+8 + 4+4, 4,filename);
 		keyFrameOffset.readBytes();
-		System.out.println("offSet of keyFrame = "+keyFrameOffset.ToDECIMAL());
+		// System.out.println("offSet of keyFrame = "+keyFrameOffset.ToDECIMAL());
 		ReadFile image = new ReadFile(chunkOffset.ToDECIMAL(),4,filename);
 		image.readBytes();
-		System.out.println("Relative Time == "+image.ToDECIMAL());		
+		// System.out.println("Relative Time == "+image.ToDECIMAL());		
 	}
 	mp4(){
 		parseMp4();

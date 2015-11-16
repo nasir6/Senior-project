@@ -2,7 +2,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.String;
-
 public class parser{
 		int pointer;
 		byte[] bytestream;
@@ -61,19 +60,14 @@ public class parser{
 		return ret;
 	}
 	public int ExpGolombDecode(){
+
 		int count_leading_zeros=0;
-		while(true){
-			int bit = readBits(1);
-			// System.out.println(bit);
-			if(bit==0){
-				count_leading_zeros=count_leading_zeros+1;
-			}else{
-				break;
-			}
+		while(readBits(1)==0){
+			count_leading_zeros+=1; 
 		}
-		double c=Math.pow(2,count_leading_zeros)-1;
+		double c=(Math.pow(2,count_leading_zeros))-1;
 		int codeNum = (int)c;
-		System.out.println("zeros "+count_leading_zeros);
+		// System.out.println("zeros "+count_leading_zeros);
 		if(count_leading_zeros==0){
 			codeNum=0;
 		}else{
@@ -87,6 +81,8 @@ public class parser{
 	public int sev(){
 		int k=ExpGolombDecode();
 		int value=(int)Math.pow(-1,k+1) * (int)Math.ceil(k/2);
+		System.out.println("***********k********** \n"+value);
+
 		return value;
 	}
 	public int mev(int mode){
@@ -483,21 +479,21 @@ public class parser{
 		return coefflevel;
 	}
 
-	public static void main(String args[]){
-		// 0,3,0,1,−1,−1,0,1,0
-		int[] testarray={0,3,-1,0,0,-1,1,0,1,0,0,0,0,0,0,0};
-		byte[] bytes = {(byte)0x8,(byte)0xe5,(byte)0xed};
-		parser p=new parser(bytes);
-		int[] coeffLevel = p.cavlc_decoder();
-		int i=0;
-		for(int j=0;j<4;j++){
-			for (int k=0;k<4 ;k++ ) {
-				System.out.print(coeffLevel[i]+"  ");
-				i=i+1;				
-			}
-			System.out.println();
-		}
-	}
+	// public static void main(String args[]){
+	// 	// 0,3,0,1,−1,−1,0,1,0
+	// 	int[] testarray={0,3,-1,0,0,-1,1,0,1,0,0,0,0,0,0,0};
+	// 	byte[] bytes = {(byte)0x8,(byte)0xe5,(byte)0xed};
+	// 	parser p=new parser(bytes);
+	// 	int[] coeffLevel = p.cavlc_decoder();
+	// 	int i=0;
+	// 	for(int j=0;j<4;j++){
+	// 		for (int k=0;k<4 ;k++ ) {
+	// 			System.out.print(coeffLevel[i]+"  ");
+	// 			i=i+1;				
+	// 		}
+	// 		System.out.println();
+	// 	}
+	// }
 
 
 }

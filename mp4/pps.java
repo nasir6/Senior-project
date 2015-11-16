@@ -84,19 +84,19 @@ public class pps{
 		redundant_pic_cnt_present_flag=p1.getBit();
 		// if rbsp data is 
 		//
-		System.out.println("pic_parameter_set_id "+pic_parameter_set_id);
-		System.out.println("seq_parameter_set_id "+seq_parameter_set_id);
-		System.out.println("entropy_coding_mode_flag "+entropy_coding_mode_flag);
-		System.out.println("bottom_field_pic_order_in_frame_present_flag "+bottom_field_pic_order_in_frame_present_flag);
-		System.out.println("num_slice_groups_minus1 "+num_slice_groups_minus1);
-		System.out.println("num_ref_idx_l0_default_active_minus1 "+num_ref_idx_l0_default_active_minus1);
-		System.out.println("num_ref_idx_l1_default_active_minus1 "+num_ref_idx_l1_default_active_minus1);
-		System.out.println("weighted_pred_flag "+weighted_pred_flag);
-		System.out.println("weighted_bipred_idc "+weighted_bipred_idc);
-		System.out.println("pic_init_qp_minus26 "+pic_init_qp_minus26);
-		System.out.println("pic_init_qs_minus26 "+pic_init_qs_minus26);
-		System.out.println("chroma_qp_index_offset "+chroma_qp_index_offset);
-		System.out.println("redundant_pic_cnt_present_flag "+redundant_pic_cnt_present_flag);
+		// System.out.println("pic_parameter_set_id "+pic_parameter_set_id);
+		// System.out.println("seq_parameter_set_id "+seq_parameter_set_id);
+		// System.out.println("entropy_coding_mode_flag "+entropy_coding_mode_flag);
+		// System.out.println("bottom_field_pic_order_in_frame_present_flag "+bottom_field_pic_order_in_frame_present_flag);
+		// System.out.println("num_slice_groups_minus1 "+num_slice_groups_minus1);
+		// System.out.println("num_ref_idx_l0_default_active_minus1 "+num_ref_idx_l0_default_active_minus1);
+		// System.out.println("num_ref_idx_l1_default_active_minus1 "+num_ref_idx_l1_default_active_minus1);
+		// System.out.println("weighted_pred_flag "+weighted_pred_flag);
+		// System.out.println("weighted_bipred_idc "+weighted_bipred_idc);
+		// System.out.println("pic_init_qp_minus26 "+pic_init_qp_minus26);
+		// System.out.println("pic_init_qs_minus26 "+pic_init_qs_minus26);
+		// System.out.println("chroma_qp_index_offset "+chroma_qp_index_offset);
+		// System.out.println("redundant_pic_cnt_present_flag "+redundant_pic_cnt_present_flag);
 		
 		boolean more_data=false;// check in rbsp for remainig bits
 

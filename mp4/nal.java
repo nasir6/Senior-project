@@ -12,7 +12,7 @@ public class nal
 {
 	int NAL_Unit_length_size=4;
 	int length;
-	int nalOffSet = 48; /// hard code .....sumran 
+	int nalOffSet = 20083; /// 
 	String fileName = "mp4.mp4";
 	int forbidden_zero_bit; //f1
 	int nal_ref_idc; //u2
@@ -105,15 +105,15 @@ public class nal
 	public static void main(String args[]){
 		mp4 mp4_0=new mp4();
 		nal test = new nal();
-		// test.parseNalUnit();
-		// test.parseNalUnit();
+		test.parseNalUnit();
+		test.parseNalUnit();
 		// if(test.nal_unit_type==5){
 
 		// }
 		sps sps0 = new sps(mp4_0.spsData);
 		pps pps0=new pps(mp4_0.ppsData);
-		// Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test); // test.rbsp_byte ka kea
-		//  maqsad hai(jab test pass kar diya hai ,  .....sumran )
+		// test.nalOffSet=mp4_0.
+		Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test);
 	}
 
 }
