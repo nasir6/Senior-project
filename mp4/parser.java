@@ -81,7 +81,7 @@ public class parser{
 	public int sev(){
 		int k=ExpGolombDecode();
 		int value=(int)Math.pow(-1,k+1) * (int)Math.ceil(k/2);
-		System.out.println("***********k********** \n"+value);
+		// System.out.println( value + " ***********k********** "+k);
 
 		return value;
 	}

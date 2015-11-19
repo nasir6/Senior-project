@@ -12,7 +12,7 @@ public class nal
 {
 	int NAL_Unit_length_size=4;
 	int length;
-	int nalOffSet = 20083; /// 
+	int nalOffSet = 20083;//+489; /// 
 	String fileName = "mp4.mp4";
 	int forbidden_zero_bit; //f1
 	int nal_ref_idc; //u2
@@ -48,11 +48,15 @@ public class nal
 		if(headerBits.charAt(1)=='0'&&headerBits.charAt(2)=='0'){
 			System.out.println("nal unit can be discarded");
 			// return;
+
 		} else{
-			System.out.println("nal_ref_idc == "+headerBits.charAt(1)+" "+headerBits.charAt(2));
+			nal_ref_idc=Integer.parseInt(headerBits.charAt(1)+""+headerBits.charAt(2),2);
+			System.out.println();
+			System.out.println("nal_ref_idc == "+nal_ref_idc);
+			System.out.println();
 		}
 		nal_unit_type = Integer.parseInt(""+headerBits.charAt(3)+headerBits.charAt(4)+headerBits.charAt(5)+headerBits.charAt(6)+headerBits.charAt(7),2);
-		System.out.println("type == "+nal_unit_type);
+		System.out.println("nal_unit_type == "+nal_unit_type);
 		if(nal_unit_type==14|| nal_unit_type==20||nal_unit_type==21){
 			if(nal_unit_type!=21){
 				// read
@@ -104,7 +108,9 @@ public class nal
 	// }
 	public static void main(String args[]){
 		mp4 mp4_0=new mp4();
+		// nal test = new nal();
 		nal test = new nal();
+		
 		test.parseNalUnit();
 		test.parseNalUnit();
 		// if(test.nal_unit_type==5){

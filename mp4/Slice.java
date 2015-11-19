@@ -5,6 +5,15 @@ public class Slice{
 	sps sps0;
 	pps pps0;
 	nal nal0;
+	boolean no_output_of_prior_pics_flag; //u1
+	boolean long_term_reference_flag;//u1
+	boolean adaptive_ref_pic_marking_mode_flag;//u1
+	int memory_management_control_operation;//uev
+	int difference_of_pic_nums_minus1;//uev
+	int long_term_pic_num;//uev
+	int long_term_frame_idx;//uev
+	int max_long_term_frame_idx_plus1;//uev
+
 	boolean IdrPicFlag;
 	//***Header of slice***//
 	parser p;
@@ -41,11 +50,11 @@ public class Slice{
 							// saw the formulae for the C file found later, 
 							// MbaffFrameFlag = sps0.mb_adaptive_frame_field_flag
 							// && (fieldpicFlag == 0 )
-	int CurrMbAddress;      // needed extensively for parsing slice data
+	int CurrMbAddr;      // needed extensively for parsing slice data
 	boolean moreDataFlag; //  
 	boolean prevMbSkipped; //
 	int mb_skip_run;
-	int mb_field_decoding_flag;
+	boolean mb_field_decoding_flag;
 
 
 
@@ -105,22 +114,58 @@ public class Slice{
 	2
 	}
 */
+	public void dec_ref_pic_marking(){
+		if(IdrPicFlag){
+			no_output_of_prior_pics_flag=p.getBit();
+			long_term_reference_flag=p.getBit();
+		}else{
+			adaptive_ref_pic_marking_mode_flag=p.getBit();
+			if(adaptive_ref_pic_marking_mode_flag){
+
+				memory_management_control_operation=p.uev();
+				while(memory_management_control_operation!=0){
+					if(memory_management_control_operation==1||memory_management_control_operation==3){
+						difference_of_pic_nums_minus1=p.uev();
+					}
+					if(memory_management_control_operation==2){
+						long_term_pic_num=p.uev();
+					}
+					if(memory_management_control_operation==3
+						||memory_management_control_operation==6){
+						long_term_frame_idx=p.uev();
+					}
+					if(memory_management_control_operation==4){
+						max_long_term_frame_idx_plus1=p.uev();
+					}
+					memory_management_control_operation=p.uev();
+				}
+
+			}
+		}
+	
+	}
+
+
+
+
+
 	public void slice_header(){
 		// System.out.println("lame things" + pps0.entropy_coding_mode_flag);
 		first_mb_in_slice = p.uev();
-		System.out.println("first_mb_in_slice " + first_mb_in_slice);
+		// System.out.println("first_mb_in_slice " + first_mb_in_slice);
 		slice_type = p.uev();
-		System.out.println("slice_type "+slice_type);
+		// System.out.println("slice_type "+slice_type);
 		pic_parameter_set_id=p.uev();
-		System.out.println("pic_parameter_set_id " +pic_parameter_set_id);
+		// System.out.println("pic_parameter_set_id " +pic_parameter_set_id);
 		if(sps0.separate_colour_plane_flag){
 			colour_plane_id=p.readBits(2);
-			System.out.println("colour_plane_id "+colour_plane_id);
+			// System.out.println("colour_plane_id "+colour_plane_id);
 
 		}
-		frame_num=p.readBits();
-		System.out.println("frame_num "+frame_num);
-		setting the idr pic flag;
+		int v = sps0.log2_max_frame_num_minus4;
+		frame_num=p.readBits(v+4);
+		// System.out.println("frame_num "+frame_num);
+		// setting the idr pic flag;
 		if(nal0.nal_unit_type==5) {
 			IdrPicFlag=true;	
 		}else {
@@ -130,7 +175,7 @@ public class Slice{
 
 		if(!(sps0.frame_mbs_only_flag)){ // false , either a frame or a field , true , definetly frame 
 			field_pic_flag=p.getBit(); // true field , false frame
-			System.out.println("field_pic_flag "+field_pic_flag); 
+			// System.out.println("field_pic_flag "+field_pic_flag); 
 			if(field_pic_flag){
 				bottom_field_flag=p.getBit();
 			}
@@ -138,7 +183,7 @@ public class Slice{
 		if(IdrPicFlag){
 			// idr_pic_id=0;
 			idr_pic_id=p.uev();
-			System.out.println("idr_pic_id "+idr_pic_id);
+			// System.out.println("idr_pic_id "+idr_pic_id);
 		}
 		if(sps0.pic_order_cnt_type==0){
 			// System.out.println("here");
@@ -152,29 +197,29 @@ public class Slice{
 			// inclusive.
 			int n=sps0.log2_max_pic_order_cnt_lsb_minus4+4; //
 			pic_order_cnt_lsb=p.readBits(n);
-			System.out.println("pic_order_cnt_lsb "+pic_order_cnt_lsb);
+			// System.out.println("pic_order_cnt_lsb "+pic_order_cnt_lsb);
 			if (pps0.bottom_field_pic_order_in_frame_present_flag&&!field_pic_flag) {
 				delta_pic_order_cnt_bottom=p.sev();
-				System.out.println("delta_pic_order_cnt "+ delta_pic_order_cnt);
+				// System.out.println("delta_pic_order_cnt "+ delta_pic_order_cnt);
 
 			}
 		}
 		delta_pic_order_cnt=new int[3]; // 
 		if(sps0.pic_order_cnt_type==1&&sps0.delta_pic_order_always_zero_flag){
 			delta_pic_order_cnt[0]=p.sev();
-			System.out.println("delta_pic_order_cnt "+delta_pic_order_cnt[0]);
+			// System.out.println("delta_pic_order_cnt "+delta_pic_order_cnt[0]);
 		}
 			// System.out.println("lame things " + pps0.bottom_field_pic_order_in_frame_present_flag);
 			// System.out.println("lame things " + field_pic_flag);
 		if(pps0.bottom_field_pic_order_in_frame_present_flag&&!field_pic_flag){
 			delta_pic_order_cnt[1]=p.sev();
-			System.out.println("delta_pic_order_cnt 1 "+delta_pic_order_cnt[1]);
+			// System.out.println("delta_pic_order_cnt 1 "+delta_pic_order_cnt[1]);
 
 		}
 			// System.out.println("lame things " + pps0.redundant_pic_cnt_present_flag);
 		if(pps0.redundant_pic_cnt_present_flag){
 			redundant_pic_cnt=p.uev();
-			System.out.println("redundant_pic_cnt "+redundant_pic_cnt);
+			// System.out.println("redundant_pic_cnt "+redundant_pic_cnt);
 
 		}
 			//slice typee
@@ -216,16 +261,19 @@ public class Slice{
 			)){
 			// pred_weight_table()
 		}
+
 		if(nal0.nal_ref_idc!=0){
+			// System.out.println("dec_ref_pic_marking   ");
 			// dec_ref_pic_marking();
+			dec_ref_pic_marking();
 		}
 		if(pps0.entropy_coding_mode_flag&&slice_type!=7&&slice_type!=2&&slice_type!=4&&slice_type!=9){
 			cabac_init_idc=p.uev();	
 		}
-		System.out.println();
+		// System.out.println();
 		// System.out.println("qp    "+p.sev());
 		slice_qp_delta=p.sev();
-		System.out.println();
+		// System.out.println();
 
 		if(slice_type==3||slice_type==8||slice_type==4||slice_type==9){
 			if (slice_type==3||slice_type==8) {
@@ -235,10 +283,12 @@ public class Slice{
 		}
 		if (pps0.deblocking_filter_control_present_flag) {
 			disable_deblocking_filter_idc=p.uev();
-			System.out.println("disable_deblocking_filter_idc "+disable_deblocking_filter_idc);
+			// System.out.println("disable_deblocking_filter_idc "+disable_deblocking_filter_idc);
 			if (disable_deblocking_filter_idc!=1) {
 				slice_alpha_c0_offset_div2=p.sev();
 				slice_beta_offset_div2=p.sev();
+				// System.out.println("slice_alpha_c0_offset_div2 "+slice_alpha_c0_offset_div2);
+				// System.out.println("slice_beta_offset_div2 "+slice_beta_offset_div2);
 			}
 		}
 		if (pps0.num_slice_groups_minus1>0&&pps0.slice_group_map_type>=3&&pps0.slice_group_map_type<=5) {
@@ -249,8 +299,8 @@ public class Slice{
 
 
 			// System.out.println("false");
-		System.out.println("slice_qp_delta "+slice_qp_delta);
-		System.out.println("******** end of slice header ********");
+		// System.out.println("slice_qp_delta "+slice_qp_delta);
+		// System.out.println("******** end of slice header ********");
 	}
 	
 
@@ -258,6 +308,22 @@ public class Slice{
 			
 
 										// section 8.2.2
+
+		if(pps0.num_slice_groups_minus1==1&&(pps0.slice_group_map_type==3||
+			pps0.slice_group_map_type==4||pps0.slice_group_map_type==5)){
+				// slice groups 0 and 1
+				//clause 8.2.2.4-6
+		}
+
+
+		int MapUnitsInSliceGroup0 = Math.min((pps0->slice_group_change_rate_minus1 + 1) * slice_group_change_cycle, PicSizeInMapUnits);
+		
+		// int MapUnitsInSliceGroup0;
+		// MapUnitsInSliceGroup0=PicSizeInMapUnits- MapUnitsInSliceGroup0;
+
+
+
+		//
 		// to be used when we cross the I slice thing 
 		// i = n + 1;  
 		// while(i < PicSizeInMbs && MbToSliceGroupMap[i] != MbToSliceGroupMap[n]) {
@@ -267,15 +333,16 @@ public class Slice{
 	}
 
 	public void slice_data() {
-		System.out.println("lame things " + pps0.entropy_coding_mode_flag);
 		if(pps0.entropy_coding_mode_flag) {
-			// it wont go to if for now becuase flag is false
 			while(! p.byte_aligned()) {
-				cabac_alignment_one_bit = p.ExpGolombDecode();
-			} 
+				cabac_alignment_one_bit = p.readBits(1);
+			}
 		}
+
+
 		MbaffFrameFlag = sps0.mb_adaptive_frame_field_flag && (field_pic_flag == false);
-		CurrMbAddress = first_mb_in_slice * ( (MbaffFrameFlag ? 1 : 0) + 1 ); // bool to 
+		
+		CurrMbAddr = first_mb_in_slice * ( (MbaffFrameFlag ? 1 : 0) + 1 ); // bool to 
 																		// int conversion 
 		moreDataFlag = true;
 		prevMbSkipped = false;
@@ -285,25 +352,25 @@ public class Slice{
 					(slice_type != 4 || slice_type != 9)) {  
 										
  				if(! pps0.entropy_coding_mode_flag) {
-					mb_skip_run = p.ExpGolombDecode();
+					mb_skip_run = p.uev();
 					prevMbSkipped = (mb_skip_run > 0);
 					for(int i = 0; i < mb_skip_run; i++) {
-						CurrMbAddress = NextMbAddress(CurrMbAddress);
+						CurrMbAddr = NextMbAddress(CurrMbAddr);
 					}
 					if(mb_skip_run > 0) {
 						moreDataFlag = p.more_rbsp_data();
 					}
 				} else {
-					// mb_skip_flag // aev read cant do right now ..surman 
+					//CABAC
+					// mb_skip_flag=p.aev(); // aev read cant do right now ..surman 
 					// more_rbsp_data = !mb_skip_flag;
 				}
 				// incomplete becuase we are still dealing with I type slice 
 			}
 			if(moreDataFlag) {
-				if(MbaffFrameFlag && (CurrMbAddress % 2 == 0 ||
-					 (CurrMbAddress % 2 == 1 && prevMbSkipped))) {
-					mb_field_decoding_flag = p.readBits(1); //
-											// u(1) readBits() kyn hai . sumran 
+				if(MbaffFrameFlag && (CurrMbAddr % 2 == 0 ||
+					 (CurrMbAddr % 2 == 1 && prevMbSkipped))) {
+					mb_field_decoding_flag = p.getBit(); //
 				}
 				macroblock_layer();  
 			}
@@ -314,9 +381,9 @@ public class Slice{
 				if((slice_type != 2 || slice_type != 7) && 
 						(slice_type != 4 || slice_type != 9)) {
 
-					// prevMbSkipped = mb_skip_flag; // aev so cant do it now sumran 
+					// prevMbSkipped = mb_skip_flag; // CABAC
 				}
-				if(MbaffFrameFlag && CurrMbAddress % 2 == 0){
+				if(MbaffFrameFlag && CurrMbAddr % 2 == 0){
 					moreDataFlag = true;
 
 				} else {
@@ -324,13 +391,15 @@ public class Slice{
 					// moreDataFlag = !end_of_slice_flag;
 				}	
 			}
-			CurrMbAddress = NextMbAddress(CurrMbAddress);
+			CurrMbAddr = NextMbAddress(CurrMbAddr);
 
 		} while(moreDataFlag);
 	}
 		
 	public void macroblock_layer() {
 		// unimplemented
+
+
 
 	}
 
