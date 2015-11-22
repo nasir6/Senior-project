@@ -94,7 +94,9 @@ public class parser{
 			11,13,14,6,9,31,35,37,42,44,33,
 			34,36,40,39,43,45,46,17,18,20,24,19,21,26,28,23,27,
 			29,30,22,25,38,41};	
-			return (mode == 0 ? tableInter[ExpGolombDecode()] : tableIntra[ExpGolombDecode()]);	
+			int k=ExpGolombDecode();
+			// System.out.println(k+"  kkkkkkkkkkkkkk");
+			return (mode == 0 ? tableInter[k] : tableIntra[k]);	
 	}
 	//ce(v)
 	// Inputs to this process are bits from slice data, a maximum number of non-zero transform coefficient 
@@ -207,7 +209,7 @@ public class parser{
 			col=7;
 		}
 		String lookupTable[][]=loadTable(tablename,row,col);
-		return lookupTable[lookUpRow][lookUpCol];
+		return lookupTable[lookUpRow+1][lookUpCol];
 	}
 	public int[] cavlcTableLookUp(String filename,int row,int col){
 		String lookupTable[][]=loadTable(filename,row,col);

@@ -415,8 +415,8 @@ public class Slice{
 		moreDataFlag = true;
 		prevMbSkipped = false;
 		while(moreDataFlag) {
-			if((slice_type != 2 || slice_type != 7) && 
-					(slice_type != 4 || slice_type != 9)) {  
+			if(!(slice_type == 2 || slice_type == 7) && 
+					!(slice_type == 4 || slice_type == 9)) {  
 										
  				if(! pps0.entropy_coding_mode_flag) {
 					mb_skip_run = p.uev();
@@ -434,7 +434,7 @@ public class Slice{
 				}
 				// incomplete becuase we are still dealing with I type slice 
 			}
-			System.out.println("moreDataFlag"+moreDataFlag);
+			// System.out.println("moreDataFlag"+moreDataFlag);
 			if(moreDataFlag) {
 				// System.out.println("here moreDataFlag");
 				if(MbaffFrameFlag && (CurrMbAddr % 2 == 0 ||
@@ -448,8 +448,8 @@ public class Slice{
 				moreDataFlag = p.more_rbsp_data();
 			} else {
 				 
-				if((slice_type != 2 || slice_type != 7) && 
-						(slice_type != 4 || slice_type != 9)) {
+				if(!(slice_type == 2 || slice_type == 7) && 
+						!(slice_type == 4 || slice_type == 9)) {
 
 					// prevMbSkipped = mb_skip_flag; // CABAC
 				}
@@ -497,6 +497,9 @@ public class Slice{
 		if(!pps0.entropy_coding_mode_flag){
 			// int []residual_block=residual_block_cavlc();
 			int []residual_block= p.cavlc_decoder();
+			for (int i=0;i<16 ;i++ ) {
+				System.out.print(residual_block[i]+" ");
+			}
 			System.out.println("here");
 		}else{
 			// int []residual_block=residual_block_cavlc();
@@ -699,7 +702,7 @@ CrLevel8x8 = level8x8
 
 
 		mbRow=p.uev();
-		System.out.println(mbRow);
+		System.out.println("mb row  "+mbRow);
 		// System.out.println(" came ");
 		// pause(0.1);
 		mb_type=p.Mb_Type("table7.11.txt",mbRow,1);
@@ -712,17 +715,12 @@ CrLevel8x8 = level8x8
 		// CodedBlockPatternLuma = coded_block_pattern % 16 
 		// CodedBlockPatternChroma = coded_block_pattern / 16
 		if(patChroma.equals("Equation7-36")){
-			System.out.println("true eq");
+			// System.out.println("true eq");
 		}else{
 			CodedBlockPatternChroma=Integer.parseInt(patChroma);
 			CodedBlockPatternLuma=Integer.parseInt(patLuma);
 
 		}
-		// if(patLuma.equals("Equation 7-36")){
-
-		// }else{
-		// 	CodedBlockPatternLuma=Integer.parseInt(patLuma);
-		// }
 		// System.out.println(" ********************** slice layer unimplemented "+mb_type);
 		if(mb_type.equals("I_PCM")){
 			while(!p.byte_aligned()){
@@ -741,7 +739,9 @@ CrLevel8x8 = level8x8
 			for(int i=0;i<pcm_sample_chroma_Size;i++){
 				pcm_sample_chroma[i]=p.readBits(BitDepthC);
 			}
-		}else if(!mb_type.equals("I_NxN")){
+		}else if(!mb_type.equals("I_NxN")&& !MbPartPredMode(mbRow,0).equals("Intra_16x16")
+			){
+			// &&NumMbPart(mbRow)==4
 			noSubMbPartSizeLessThan8x8Flag=true;
 			// if())
 			// 	MbPartPredMode( mb_type, 0 ) != Intra_16x16 && 
@@ -769,17 +769,19 @@ CrLevel8x8 = level8x8
 			}else{
 				CodedBlockPatternChroma=Integer.parseInt(patChroma);
 				CodedBlockPatternLuma=Integer.parseInt(patLuma);
+				// System.out.println("CodedBlockPatternChroma "+coded_block_pattern);
 			}
 			if(CodedBlockPatternLuma>0&&pps0.transform_8x8_mode_flag&&!mb_type.equals("I_NxN")
 				&&noSubMbPartSizeLessThan8x8Flag&&(!mb_type.equals("B_Direct_16x16")||sps0.direct_8x8_inference_flag)){
 				transform_size_8x8_flag=p.getBit();
+				// System.out.println("transform_size_8x8_flag  ");
 			}
 		}
 
 		if(CodedBlockPatternLuma>0||CodedBlockPatternChroma>0||
 			MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 			mb_qp_delta=p.sev();
-			// System.out.println("call to ");
+			// System.out.println("call to "+mb_qp_delta);
 			residual(0,15);
 		}
 
