@@ -98,8 +98,8 @@ public class pps{
 		// System.out.println("chroma_qp_index_offset "+chroma_qp_index_offset);
 		// System.out.println("redundant_pic_cnt_present_flag "+redundant_pic_cnt_present_flag);
 		
-		boolean more_data=false;// check in rbsp for remainig bits
-
+		boolean more_data=p1.more_rbsp_data();// check in rbsp for remainig bits
+		transform_8x8_mode_flag=false;
 		if(more_data){
 			transform_8x8_mode_flag=p1.getBit();
 			pic_scaling_matrix_present_flag=p1.getBit();

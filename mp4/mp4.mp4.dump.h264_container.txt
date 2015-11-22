@@ -1,0 +1,234 @@
+ftyp
+	size = 24
+	major_brand = isom
+	minor_version = 1
+moov
+	size = 20051
+	mvhd
+		size = 108
+		version = 0
+		flags = 0(0x0)
+	iods
+		size = 21
+		version = 0
+		flags = 0(0x0)
+	trak
+		size = 8176
+		tkhd
+			size = 92
+			version = 0
+			flags = 1(0x1)
+		mdia
+			size = 8076
+			mdhd
+				size = 32
+				version = 0
+				flags = 0(0x0)
+			hdlr
+				size = 55
+				version = 0
+				flags = 0(0x0)
+				handler_type = vide
+			minf
+				size = 7981
+				vmhd
+					size = 20
+					version = 0
+					flags = 1(0x1)
+				dinf
+					size = 36
+					dref
+						size = 28
+						version = 0
+						flags = 0(0x0)
+				stbl
+					size = 7917
+					stsd
+						size = 173
+						version = 0
+						flags = 0(0x0)
+						entryCount = 1
+						avc1
+							size = 157
+							avcC
+								size = 51
+							btrt
+								size = 20
+					stsd
+						size = 173
+						version = 0
+						flags = 0(0x0)
+						entryCount = 1
+					stts
+						size = 24
+						version = 0
+						flags = 0(0x0)
+					stss
+						size = 72
+						version = 0
+						flags = 0(0x0)
+					stsc
+						size = 340
+						version = 0
+						flags = 0(0x0)
+						entry_count = 27
+							first_chunk = 1
+							sample_per_chunk = 13
+							sample_description_index = 1
+							first_chunk = 2
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 13
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 14
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 24
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 25
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 36
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 37
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 47
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 48
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 58
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 59
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 70
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 71
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 81
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 82
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 92
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 93
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 104
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 105
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 115
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 116
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 126
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 127
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 138
+							sample_per_chunk = 11
+							sample_description_index = 1
+							first_chunk = 139
+							sample_per_chunk = 12
+							sample_description_index = 1
+							first_chunk = 141
+							sample_per_chunk = 6
+							sample_description_index = 1
+					stsz
+						size = 6720
+						version = 0
+						flags = 0(0x0)
+					stco
+						size = 580
+						version = 0
+						flags = 0(0x0)
+	trak
+		size = 11738
+		tkhd
+			size = 92
+			version = 0
+			flags = 1(0x1)
+		mdia
+			size = 11638
+			mdhd
+				size = 32
+				version = 0
+				flags = 0(0x0)
+			hdlr
+				size = 55
+				version = 0
+				flags = 0(0x0)
+				handler_type = soun
+			minf
+				size = 11543
+				smhd
+					size = 16
+					version = 0
+					flags = 0(0x0)
+				dinf
+					size = 36
+					dref
+						size = 28
+						version = 0
+						flags = 0(0x0)
+				stbl
+					size = 11483
+					stsd
+						size = 87
+						version = 0
+						flags = 0(0x0)
+						entryCount = 1
+					stsd
+						size = 87
+						version = 0
+						flags = 0(0x0)
+						entryCount = 1
+					stts
+						size = 24
+						version = 0
+						flags = 0(0x0)
+					stsc
+						size = 52
+						version = 0
+						flags = 0(0x0)
+						entry_count = 3
+							first_chunk = 1
+							sample_per_chunk = 20
+							sample_description_index = 1
+							first_chunk = 2
+							sample_per_chunk = 19
+							sample_description_index = 1
+							first_chunk = 141
+							sample_per_chunk = 17
+							sample_description_index = 1
+					stsz
+						size = 10732
+						version = 0
+						flags = 0(0x0)
+					stco
+						size = 580
+						version = 0
+						flags = 0(0x0)
+mdat
+	size = 3642697
+free
+	size = 99

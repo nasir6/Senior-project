@@ -1,0 +1,3 @@
+MbWidthC = 16 / SubWidthC (6-1)
+MbHeightC = 16 / SubHeightC
+BitDepthC = 8 + bit_depth_chroma_minus8

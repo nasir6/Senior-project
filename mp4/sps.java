@@ -49,6 +49,8 @@ public class sps{
 	sps(){}
 	
 	sps(byte spsSet[]){
+		separate_colour_plane_flag=false;
+		chroma_format_idc=1;
 		seq_parameter_set=spsSet;//  
 		parser p1= new parser(seq_parameter_set);
 		// System.out.println(seq_parameter_set.length);

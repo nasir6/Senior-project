@@ -10,11 +10,12 @@ public class parser{
 		pointer=0;
 	}
 	public boolean byte_aligned(){
-		System.out.println("bohat hi lame zindagi hai" + pointer % 8);
+		// System.out.println("bohat hi lame zindagi hai" + pointer % 8);
 		return (pointer % 8 == 0 ? true : false);
 	}
 	public boolean more_rbsp_data(){
-		if(byte_aligned() && pointer / 8 == bytestream.length) {
+		System.out.println(pointer/8+" "+bytestream.length);
+		if((pointer) < bytestream.length*8) {
 			return true;
 		} else {
 			return false;
@@ -126,7 +127,7 @@ public class parser{
 				ex.printStackTrace();
 			}
 		}
-		System.out.println(count+" total entries");
+		// System.out.println(count+" total entries");
 		return count;
 	}
 	public String[][] loadTable(String filename,int row,int col){
@@ -154,7 +155,7 @@ public class parser{
 				ex.printStackTrace();
 			}
 		}
-		System.out.println(count+" total entries");
+		// System.out.println(count+" total entries");
 		return lookupTable;
 	}
 	public int vlcTableLookUp(String filename,int lookupcolom){
@@ -198,6 +199,15 @@ public class parser{
 				}
 			}
 		}
+	}
+	public String Mb_Type(String tablename, int lookUpRow,int lookUpCol){
+		int row=0,col=0;
+		if(tablename.equals("table7.11.txt")){
+			row=27;
+			col=7;
+		}
+		String lookupTable[][]=loadTable(tablename,row,col);
+		return lookupTable[lookUpRow][lookUpCol];
 	}
 	public int[] cavlcTableLookUp(String filename,int row,int col){
 		String lookupTable[][]=loadTable(filename,row,col);
