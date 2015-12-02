@@ -1,3 +1,12 @@
 MbWidthC = 16 / SubWidthC (6-1)
 MbHeightC = 16 / SubHeightC
 BitDepthC = 8 + bit_depth_chroma_minus8
+
+page 38	InverseRasterScan()
+InverseRasterScan( a, b, c, d, e )
+
+
+sub_mb_type():
+row 5 col 6
+Table 7.17-18
+P and B slices

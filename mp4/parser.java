@@ -4,7 +4,11 @@ import java.io.IOException;
 import java.lang.String;
 public class parser{
 		int pointer;
+		int nC;
+		int maxNumCoeff;
+		int[] coeffLevel;
 		byte[] bytestream;
+		int startIdx, endIdx;
 	parser(byte[] array){
 		bytestream=array;
 		pointer=0;
@@ -14,7 +18,7 @@ public class parser{
 		return (pointer % 8 == 0 ? true : false);
 	}
 	public boolean more_rbsp_data(){
-		System.out.println(pointer/8+" "+bytestream.length);
+		// System.out.println(pointer/8+" "+bytestream.length);
 		if((pointer) < bytestream.length*8) {
 			return true;
 		} else {
@@ -184,6 +188,7 @@ public class parser{
 			row=15;
 			col=8;
 		}
+		// System.out.println();
 		// System.out.println(row+" "+col);
 		String lookupTable[][]=loadTable(filename,row,col);
 		String match="";
@@ -208,13 +213,17 @@ public class parser{
 			row=27;
 			col=7;
 		}
+		if(tablename.equals("table7.13.txt")){
+			row=6;
+			col=7;
+		}
 		String lookupTable[][]=loadTable(tablename,row,col);
 		return lookupTable[lookUpRow+1][lookUpCol];
 	}
 	public int[] cavlcTableLookUp(String filename,int row,int col){
 		String lookupTable[][]=loadTable(filename,row,col);
 		
-		int nC=0;
+		// nC=0;
 		// if(ChromaArrayType==1){
 			// nC=-1
 		// } else if(ChromaArrayType==2){
@@ -268,15 +277,26 @@ public class parser{
 		}
 		
 	}
+	public void residual_block_cavlc(int[] coeffLevel_,int startIdx_,int endIdx_,int maxNumCoeff_){
+		maxNumCoeff=maxNumCoeff_;
+		coeffLevel=coeffLevel_;
+		startIdx=startIdx_;
+		endIdx=endIdx_;
+		coeffLevel_=cavlc_decoder();
+		for (int i=0;i<maxNumCoeff ;i++ ) {
+			System.out.print(coeffLevel[i]+" ");
+			
+		}
+		System.out.println();
+	}
 	public int[] cavlc_decoder(){
 		// load table 9.5
-		
-
-		int maxNumCoeff=16;
-		int[] levelVal = new int[16];
+		// maxNumCoeff=16;
+		int[] levelVal = new int[maxNumCoeff];
 		// step 1
-		for (int i=0;i<16 ;i++ ) {
+		for (int i=0;i<maxNumCoeff ;i++ ) {
 			levelVal[i]=0;
+			coeffLevel[i]=0;
 		}
 		// step 2 Total number of non-zero and tailing ones by clause 9.2.1
 		// 9.2.1
@@ -293,7 +313,7 @@ public class parser{
 			// TrailingOnes
 			// nC
 		int[] ret=cavlcTableLookUp("table9.5.txt",62,8);
-		System.out.println(ret[0]+" "+ret[1]);
+		// System.out.println(ret[0]+" "+ret[1]);
 		int TotalCoeff=ret[1];
 		int TrailingOnes=ret[0];
 		int nC=ret[2];
@@ -415,8 +435,9 @@ public class parser{
 		index =0;
 		// int tablenum=0;
 		int total_zeros=0;
-		
+		// System.out.println("tzVlcIndex "+tzVlcIndex);
 		int[] runVal=new int [TotalCoeff];
+		// System.out.println("tzVlcIndex "+tzVlcIndex);
 		// – If maxNumCoeff is equal to 4, one of the VLCs specified in Table 9-9 (a) is used.
 		if(maxNumCoeff==4){
 			// tablenum=1;
@@ -429,7 +450,7 @@ public class parser{
 			if(tzVlcIndex<8){
 				total_zeros=vlcTableLookUp("table9.7.txt",tzVlcIndex);
 			}else if(tzVlcIndex>=8){
-				total_zeros=vlcTableLookUp("table9.8.txt",tzVlcIndex);
+				total_zeros=vlcTableLookUp("table9.8.txt",tzVlcIndex-7);
 			}
 		}
 		int zerosLeft =total_zeros; 
@@ -437,7 +458,7 @@ public class parser{
 
 		// – Otherwise (maxNumCoeff is not equal to 4 and not equal to 8), VLCs from Tables 9-7 and 9-8 are used.
 
-		System.out.println("zerosLeft "+zerosLeft);
+		// System.out.println("zerosLeft "+zerosLeft);
 		// The following ordered steps are then performed TotalCoeff( coeff_token ) − 1 times:
 		for(int i=0;i<TotalCoeff-1;i++){
 			// 1. The variable runVal[ i ] is derived as follows:
@@ -445,6 +466,9 @@ public class parser{
 		// – If zerosLeft is greater than zero, a value run_before is decoded based on 
 		// Table 9-10 and zerosLeft. runVal[ i ] is set equal to run_before.
 			if(zerosLeft>0){
+				if(zerosLeft>6){
+					zerosLeft=7;
+				}
 				runVal[index]=vlcTableLookUp("table9.10.txt",zerosLeft);
 				// runVal[index]=run_before;
 			}else if(zerosLeft==0){
@@ -467,7 +491,7 @@ public class parser{
 		// 	// System.out.println("runVal "+runVal[i]);
 		// }
 
-		int[] coefflevel={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+		// int[] coefflevel={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 		// Input to this process are a list of transform coefficient levels called levelVal, 
 		// a list of runs called runVal, and the number of non-zero transform coefficient levels TotalCoeff( coeff_token ).
 // Output of this process is an list coeffLevel of transform coefficient levels.
@@ -480,15 +504,13 @@ public class parser{
 			// 1. coeffNum is incremented by runVal[ i ] + 1.	 
 			coeffNum=coeffNum+1+runVal[index];
 			// 2. coeffLevel[ coeffNum ] is set equal to levelVal[ i ].
-			coefflevel[coeffNum]=levelVal[index];
+			coeffLevel[coeffNum+startIdx]=levelVal[index];
 			// 3. The index i is decremented by 1.
 			index=index-1;
 			
 		}
-
-
-
-		return coefflevel;
+		// coeffLevel_=coeffLevel;
+		return coeffLevel;
 	}
 
 	// public static void main(String args[]){
@@ -496,11 +518,13 @@ public class parser{
 	// 	int[] testarray={0,3,-1,0,0,-1,1,0,1,0,0,0,0,0,0,0};
 	// 	byte[] bytes = {(byte)0x8,(byte)0xe5,(byte)0xed};
 	// 	parser p=new parser(bytes);
-	// 	int[] coeffLevel = p.cavlc_decoder();
+	// 	int[] coefflevel=new int [16];
+	// 	p.residual_block_cavlc(coefflevel,0,15,16);
+	// 	// int[] coeffLevel = p.cavlc_decoder();
 	// 	int i=0;
 	// 	for(int j=0;j<4;j++){
 	// 		for (int k=0;k<4 ;k++ ) {
-	// 			System.out.print(coeffLevel[i]+"  ");
+	// 			System.out.print(coefflevel[i]+"  ");
 	// 			i=i+1;				
 	// 		}
 	// 		System.out.println();

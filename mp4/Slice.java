@@ -77,10 +77,18 @@ public class Slice{
 	boolean[] prev_intra8x8_pred_mode_flag;//u1
 	int[] rem_intra8x8_pred_mode;//u3
 	int intra_chroma_pred_mode; //uev
-	int ref_idx_l0;//tev
-	int ref_idx_l1;//tev
-	int mvd_l0;//sev
-	int mvd_l1; //sev
+	int []ref_idx_l0;//tev
+	int []ref_idx_l1;//tev
+	int [][][]mvd_l0;//sev
+	int[][][] mvd_l1; //sev
+	int luma4x4BlkIdx;
+	int cr4x4BlkIdx;
+	int cb4x4BlkIdx;
+	int blkA;
+	int blkB;
+	int CodedBlockPatternLuma,CodedBlockPatternChroma;
+	int mbAddrA,mbAddrB,luma4x4BlkIdxB,luma4x4BlkIdxA;
+
 
 	int ChromaArrayType;
 
@@ -126,6 +134,10 @@ public class Slice{
 	9	SI (SI slice)
 
 */
+	public void Transform_coefficient_decoding(){
+		
+	}
+
 	public void dec_ref_pic_marking(){
 		if(IdrPicFlag){
 			no_output_of_prior_pics_flag=p.getBit();
@@ -492,151 +504,253 @@ public class Slice{
 		String ret =p.Mb_Type("table7.11.txt",mbType,3);
 		return ret;
 	}
-	public void residual(int startIdx,int endIdx){
-		System.out.println("residual");
-		if(!pps0.entropy_coding_mode_flag){
-			// int []residual_block=residual_block_cavlc();
-			int []residual_block= p.cavlc_decoder();
-			for (int i=0;i<16 ;i++ ) {
-				System.out.print(residual_block[i]+" ");
-			}
-			System.out.println("here");
-		}else{
-			// int []residual_block=residual_block_cavlc();
-		}
-		// residual_luma(i16x16DClevel,i16x16AClevel,
-		// 	level4x4,level8x8,startIdx,endIdx);
-		// Intra16x16DCLevel=i16x16DClevel;
-		// Intra16x16ACLevel=i16x16AClevel;
-		// LumaLevel4x4=level4x4;
-		// LumaLevel8x8=level8x8;
-		// if(ChromaArrayType==1||ChromaArrayType==2){
-		// 	NumC8x8=4/(getSubHeightC*getSubWidthC);
-		// 	for(int iCbCr=0;iCbCr<2;iCbCr++){
-		// 		if((CodedBlockPatternChroma & 3)&&startIdx==0){
-		// 			residual_block(ChromaDCLevel[iCbCr],0,4*NumC8x8-1,4*NumC8x8);
+	public void setnC(){
+		mbAddrA=CurrMbAddr;// or to the left;
+		luma4x4BlkIdxA=luma4x4BlkIdx; // or to the left of it;
 
-		// 		}else{
-		// 			for(int i=0;i<4*NumC8x8;i++){
-		// 				ChromaDCLevel[iCbCr][i]=0;
-		// 			}
-		// 		}
-		// 	}
-		// 	for(int iCbCr=0;iCbCr<2;iCbCr++){
-		// 		for(int i8x8=0;i8x8<NumC8x8;i8x8++){
-		// 			for(int i4x4=0;i4x4<4;i4x4++){
-		// 				if(CodedBlockPatternChroma & 2){
-		// 					residual_block(ChromaACLevel[iCbCr][i8x8*4+i4x4],Math.max(0,startIdx-1),endIdx-1,15);
 
-		// 				}else{
-		// 					for(int i=0;i<15;i++){
-		// 						ChromaACLevel[iCbCr][i8x8*4+i4x4][i]=0;
-		// 					}
-		// 				}
-		// 			}	
-		// 		}
-		// 	}
-		// }else if(ChromaArrayType==3){
-		// 	residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
-		// 	CbIntra16x16DCLevel=i16x16DClevel;
-		// 	CbIntra16x16ACLevel=i16x16AClevel;
-		// 	CbLevel4x4=level4x4;
-		// 	CbLevel8x8=level8x8;
-		// 	residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
-		// 	CrIntra16x16DCLevel=i16x16DClevel;
-		// 	CrIntra16x16ACLevel=i16x16AClevel;
-		// 	CrLevel4x4=level4x4;
-		// 	CrLevel8x8=level8x8;	
+		mbAddrB=CurrMbAddr;// or above the curr;
+		luma4x4BlkIdxB=luma4x4BlkIdx; // or above the 4x4
+		//for mb ==0
+		p.nC=0;
+		
+
+		// x=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,0)+InverseRasterScan(luma4x4BlkIdx % 4,4,4,8,0);// (6-17)
+		// y=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,1)+InverseRasterScan(luma4x4BlkIdx % 4,4,4,8,1);//
+
+		// int xD=-1;
+		// int yD=-1;
+
+		// 3. The luma location ( xN, yN ) is specified by:
+		// int xN= x + xD;// (6-25)
+		// int yN= y + yD;// (6-26)
+		// 4. The derivation process for neighbouring locations as specified in clause 
+		// 6.4.12 is invoked for luma locations with ( xN, yN ) as the input and the 
+		// output is assigned to mbAddrN and ( xW, yW ).
+
+		// int xW,yW;
+		// 5. The variable luma4x4BlkIdxN is derived as follows:
+		// – If mbAddrN is not available, luma4x4BlkIdxN is marked as not available.
+		// – Otherwise (mbAddrN is available), the derivation process for 4x4 luma block indices as specified in clause 6.4.13.1 is invoked with the luma location ( xW, yW ) as the input and the output is assigned to luma4x4BlkIdxN.
+
+
+
+
+		
+		// – Otherwise, if the CAVLC parsing process is invoked for CbIntra16x16DCLevel, CbIntra16x16ACLevel, or CbLevel4x4, the process specified in clause 6.4.11.6 is invoked with cb4x4BlkIdx as the input, and the output is assigned to mbAddrA, mbAddrB, cb4x4BlkIdxA, and cb4x4BlkIdxB. The 4x4 Cb block specified by mbAddrA\cb4x4BlkIdxA is assigned to blkA, and the 4x4 Cb block specified by mbAddrB\cb4x4BlkIdxB is assigned to blkB.
+		// – Otherwise, if the CAVLC parsing process is invoked for CrIntra16x16DCLevel, CrIntra16x16ACLevel, or CrLevel4x4, the process specified in clause 6.4.11.6 is invoked with cr4x4BlkIdx as the input, and the output is assigned to mbAddrA, mbAddrB, cr4x4BlkIdxA, and cr4x4BlkIdxB. The 4x4 Cr block specified by mbAddrA\cr4x4BlkIdxA is assigned to blkA, and the 4x4 Cr block specified by mbAddrB\cr4x4BlkIdxB is assigned to blkB.
+		// – Otherwise (the CAVLC parsing process is invoked for ChromaACLevel), the process specified in clause 6.4.11.5 is invoked with chroma4x4BlkIdx as input, and the output is assigned to mbAddrA, mbAddrB, chroma4x4BlkIdxA, and chroma4x4BlkIdxB. The 4x4 chroma block specified by mbAddrA\iCbCr\chroma4x4BlkIdxA is assigned to blkA, and the 4x4 chroma block specified by mbAddrB\iCbCr\chroma4x4BlkIdxB is assigned to blkB.
+		// 5. The variable availableFlagN with N being replaced by A and B is derived as follows:
+		// – If any of the following conditions are true, availableFlagN is set equal to 0:
+		// – mbAddrN is not available,
+		// – the current macroblock is coded using an Intra macroblock prediction mode, constrained_intra_pred_flag is equal to 1, mbAddrN is coded using an Inter macroblock prediction mode, and slice data partitioning is in use (nal_unit_type is in the range of 2 to 4, inclusive).
+		// – Otherwise, availableFlagN is set equal to 1.
+		// 6. For N being replaced by A and B, when availableFlagN is equal to 1, the variable nN is derived as follows:
+		// – If any of the following conditions are true, nN is set equal to 0:
+		// – The macroblock mbAddrN has mb_type equal to P_Skip or B_Skip,
+		// – The macroblock mbAddrN has mb_type not equal to I_PCM and all AC residual transform coefficient levels of the neighbouring block blkN are equal to 0 due to the corresponding bit of CodedBlockPatternLuma or CodedBlockPatternChroma being equal to 0.
+		// – Otherwise, if mbAddrN is an I_PCM macroblock, nN is set equal to 16.
+		// – Otherwise, nN is set equal to the value TotalCoeff( coeff_token ) of the neighbouring block blkN.
+		// NOTE 1 – The values nA and nB that are derived using TotalCoeff( coeff_token ) do not include the DC transform coefficient levels in Intra_16x16 macroblocks or DC transform coefficient levels in chroma blocks, because these transform coefficient levels are decoded separately. When the block above or to the left belongs to an Intra_16x16 macroblock, nA or nB is the number of decoded non-zero AC transform coefficient levels for the adjacent 4x4 block in the Intra_16x16 macroblock. When the block above or to the left is a chroma block, nA or nB is the number of decoded non-zero AC transform coefficient levels for the adjacent chroma block.
+		// NOTE 2 – When parsing for Intra16x16DCLevel, CbIntra16x16DCLevel, or CrIntra16x16DCLevel, the values nA and nB are based on the number of non-zero transform coefficient levels in adjacent 4x4 blocks and not on the number of non-zero DC transform coefficient levels in adjacent 16x16 blocks.
+		// 7. The variable nC is derived as follows:
+		// – If availableFlagA is equal to 1 and availableFlagB is equal to 1, the variable nC is set equal to ( nA + nB + 1 ) >> 1.
+		// – Otherwise, if availableFlagA is equal to 1 (and availableFlagB is equal to 0), the variable nC is set equal to nA.
+		// – Otherwise, if availableFlagB is equal to 1 (and availableFlagA is equal to 0), the variable nC is set equal to nB.
+		// – Otherwise (availableFlagA is equal to 0 and availableFlagB is equal to 0), the variable nC is set equal to 0.
+		// When maxNumCoeff is equal to 15, it is a requirement of bitstream conformance that the value of TotalCoeff( coeff_token ) resulting from decoding coeff_token shall not be equal to 16.
+		// Table 9-5 – coeff_token mapping to TotalCoeff( coeff_token ) and TrailingOnes( coeff_token )
+
+	}
+	public void ChromaDCLevelnC(){
+		if(ChromaArrayType==1){
+			p.nC=-1;
+		}else if(ChromaArrayType==2){
+			p.nC=-2;
+		}			
 	}
 
+	public void residual(int startIdx,int endIdx){
+		int[] i16x16DClevel=new int[16];
+		int[][] i16x16AClevel=new int[16][16];
+		int[][] level4x4=new int[16][16];
+		int[][] level8x8=new int[16][64];
+		int[] Intra16x16DCLevel;
+		int[][] Intra16x16ACLevel;
+		int[][] LumaLevel4x4;
+		int[][] LumaLevel8x8;
+		int NumC8x8=4/(getSubHeightC()*getSubWidthC());
+		int[][] ChromaDCLevel=new int[2][NumC8x8*4];
+		int [][][] ChromaACLevel=new int[2][NumC8x8][4];
+		int[] CbIntra16x16DCLevel;
+		int[][] CbIntra16x16ACLevel;
+		int[][] CbLevel4x4;
+		int[][] CbLevel8x8;
+		// residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
+		int[] CrIntra16x16DCLevel;
+		int[][] CrIntra16x16ACLevel;
+		int[][] CrLevel4x4;
+		int[][] CrLevel8x8;
+
+		// System.out.println("residual");
+		if(!pps0.entropy_coding_mode_flag){
+			// int []residual_block=residual_block_cavlc();
+			// int []residual_block= new int[16];
+			// setnC();
+
+			// p.residual_block_cavlc(residual_block,0,15,16);
+			// System.out.println("residual_block ");
+			// for (int i=0;i<16 ;i++ ) {
+			// 	System.out.print(residual_block[i]+" ");
+			// }
+			System.out.println();
+		}else{
+			// int []residual_block=residual_block_cabac();
+		}
+		luma4x4BlkIdx=0;
+		// System.out.println("residual_luma");
+		residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
+		Intra16x16DCLevel=i16x16DClevel;
+		Intra16x16ACLevel=i16x16AClevel;
+		LumaLevel4x4=level4x4;
+		LumaLevel8x8=level8x8;
+		
+		if(ChromaArrayType==1||ChromaArrayType==2){
+			for(int iCbCr=0;iCbCr<2;iCbCr++){
+				if(((CodedBlockPatternChroma & 3)!=0)&&startIdx==0){
+					int[] cdc=new int[NumC8x8*4];
+					ChromaDCLevelnC();
+					p.residual_block_cavlc(cdc,0,4*NumC8x8-1,4*NumC8x8);
+					System.out.println("cdc");
+					ChromaDCLevel[iCbCr]=cdc;
+				}else{
+					for(int i=0;i<4*NumC8x8;i++){
+						ChromaDCLevel[iCbCr][i]=0;
+					}
+				}
+			}
+			for(int iCbCr=0;iCbCr<2;iCbCr++){
+				for(int i8x8=0;i8x8<NumC8x8;i8x8++){
+					for(int i4x4=0;i4x4<4;i4x4++){
+						if((CodedBlockPatternChroma&2)!=0){
+							setnC();
+							p.residual_block_cavlc(ChromaACLevel[iCbCr][i8x8*4+i4x4],Math.max(0,startIdx-1),endIdx-1,15);
+							System.out.println("ac");
+						}else{
+							for(int i=0;i<15;i++){
+								ChromaACLevel[iCbCr][i8x8*4+i4x4][i]=0;
+							}
+						}
+					}	
+				}
+			}
+		}else if(ChromaArrayType==3){
+			cb4x4BlkIdx=0;
+			// System.out.println("ChromaArrayType==3");
+			residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
+			CbIntra16x16DCLevel=i16x16DClevel;
+			CbIntra16x16ACLevel=i16x16AClevel;
+			CbLevel4x4=level4x4;
+			CbLevel8x8=level8x8;
+			cr4x4BlkIdx=0;
+			residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
+			CrIntra16x16DCLevel=i16x16DClevel;
+			CrIntra16x16ACLevel=i16x16AClevel;
+			CrLevel4x4=level4x4;
+			CrLevel8x8=level8x8;	
+		}
+	}
+
+	public void residual_luma(int[] i16x16DClevel,int[][] i16x16AClevel
+		,int[][] level4x4,int[][] level8x8,int startIdx,int endIdx){
+		if(startIdx==0&&MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+			// luma4x4BlkIdx=0;
+			setnC();
+			// System.out.println("dc");
+			p.residual_block_cavlc(i16x16DClevel,0,15,16);
+		}
+
+		// System.out.println("transform_size_8x8_flag "+transform_size_8x8_flag);
+		for(int i8x8=0;i8x8<4;i8x8++){
+			if(!transform_size_8x8_flag||!pps0.entropy_coding_mode_flag){
+				for(int i4x4=0;i4x4<4;i4x4++){
+					// System.out.println(CodedBlockPatternLuma+" "+"CodedBlockPatternLuma");
+					// if(CodedBlockPatternChroma==0){
+
+					// }
+					if((CodedBlockPatternLuma & (1<<i8x8))!=0){
+						if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+							// i16x16AClevel=
+							int [] ac=new int[16];
+							setnC();
+							p.residual_block_cavlc(ac,Math.max(0,startIdx-1),endIdx-1,15);
+							i16x16AClevel[i8x8*4+i4x4]=ac;
+							// System.out.println("line 577 implemetation required");
+						}else{
+							int [] l4x4=new int[16];
+							setnC();
+
+							p.residual_block_cavlc(l4x4,startIdx,endIdx,16);
+							level4x4[i8x8*4+i4x4]=l4x4;
+
+							// residual_block(level4x4[i8x8*4])
+							// System.out.println("line 580 implemetation required");
+						}
+
+					}else if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+						for(int i=0;i<15;i++){
+							// System.out.print("0");
+
+							i16x16AClevel[i8x8*4+i4x4][i]=0;
+							// level8x8[i8x8][4*i+i4x4]=level4x4[i8x8*4+i4x4][i];
+						}
+					}else{
+						for (int i=0;i<16 ;i++ ) {
+							// System.out.println("line 600 implemetation required");
+							// System.out.println("0");	
+							level8x8[i8x8][4*i+i4x4]=level4x4[i8x8*4+i4x4][i];
+								
+						}
+					}
+					if(!pps0.entropy_coding_mode_flag&&transform_size_8x8_flag){
+						for(int i=0;i<16;i++){
+							// System.out.println("line 608 implemetation required");
+
+							level8x8[i8x8][4*i+i4x4]=level4x4[i8x8*4+i4x4][i];
+						}
+					}
+				}
+			}
+			else if((CodedBlockPatternLuma&(1<<i8x8))!=0){
+				int[] l8x8=new int [64];
+				setnC();
+
+				p.residual_block_cavlc(l8x8,4*startIdx,4*endIdx+3,64);
+				level8x8[i8x8]=l8x8;
+					// residual_block( level8x8[ i8x8 ], 4 * startIdx, 4 * endIdx + 3, 64 )
+				// System.out.println("line 603 implemetation required");
+			}else{
+				for(int i=0;i<64;i++){
+					// System.out.print("line 580 implemetation required");
+
+					level8x8[i8x8][i]=0;
+				}
+			}
 
 
-	// public void 
-
-/*
-residual_luma( i16x16DClevel, i16x16AClevel, level4x4, level8x8, startIdx, endIdx ) {
-C
-Descriptor
-if( startIdx = = 0 && MbPartPredMode( mb_type, 0 ) = = Intra_16x16 )
-residual_block( i16x16DClevel, 0, 15, 16 )
-3
-for( i8x8 = 0; i8x8 < 4; i8x8++ )
-if( !transform_size_8x8_flag | | !entropy_coding_mode_flag )
-for( i4x4 = 0; i4x4 < 4; i4x4++ ) {
-if( CodedBlockPatternLuma & ( 1 << i8x8 ) )
-if( MbPartPredMode( mb_type, 0 ) = = Intra_16x16 )
-residual_block( i16x16AClevel[ i8x8 * 4 + i4x4 ], Max( 0, startIdx − 1 ), endIdx − 1, 15)
-3
-else
-residual_block( level4x4[ i8x8 * 4 + i4x4 ], startIdx, endIdx, 16)
-3 | 4
-else if( MbPartPredMode( mb_type, 0 ) = = Intra_16x16 )
-for( i = 0; i < 15; i++ )
-i16x16AClevel[ i8x8 * 4 + i4x4 ][ i ] = 0
-else
-for( i = 0; i < 16; i++ )
-level4x4[ i8x8 * 4 + i4x4 ][ i ] = 0
-if( !entropy_coding_mode_flag && transform_size_8x8_flag )
-for( i = 0; i < 16; i++ )
-level8x8[ i8x8 ][ 4 * i + i4x4 ] = level4x4[ i8x8 * 4 + i4x4 ][ i ]
-}
-else if( CodedBlockPatternLuma & ( 1 << i8x8 ) )
-residual_block( level8x8[ i8x8 ], 4 * startIdx, 4 * endIdx + 3, 64 )
-3 | 4
-else
-for( i = 0; i < 64; i++ )
-level8x8[ i8x8 ][ i ] = 0
-}
-		residual( startIdx, endIdx ) {
-C
-Descriptor
-if( !entropy_coding_mode_flag )
-residual_block = residual_block_cavlc
-else
-residual_block = residual_block_cabac
-residual_luma( i16x16DClevel, i16x16AClevel, level4x4, level8x8, startIdx, endIdx )
-3 | 4
-Intra16x16DCLevel = i16x16DClevel
-Intra16x16ACLevel = i16x16AClevel
-LumaLevel4x4 = level4x4
-LumaLevel8x8 = level8x8
-if( ChromaArrayType = = 1 | | ChromaArrayType = = 2 ) {
-NumC8x8 = 4 / ( SubWidthC * SubHeightC )
-for( iCbCr = 0; iCbCr < 2; iCbCr++ )
-if( ( CodedBlockPatternChroma & 3 ) && startIdx = = 0 ) /* chroma DC residual present *
-residual_block ChromaDCLevel[ iCbCr ], 0, 4 * NumC8x8 − 1, 4 * NumC8x8
-3 | 4
-else
-for( i = 0; i < 4 * NumC8x8; i++ )
-ChromaDCLevel[ iCbCr ][ i ] = 0
-for( iCbCr = 0; iCbCr < 2; iCbCr++ )
-for( i8x8 = 0; i8x8 < NumC8x8; i8x8++ )
-for( i4x4 = 0; i4x4 < 4; i4x4++ )
-if( CodedBlockPatternChroma & 2 ) /* chroma AC residual present *
-residual_block( ChromaACLevel[ iCbCr ][ i8x8*4+i4x4 ], Max( 0, startIdx − 1 ), endIdx − 1, 15)
-3 | 4
-else
-for( i = 0; i < 15; i++ )
-ChromaACLevel[ iCbCr ][ i8x8*4+i4x4 ][ i ] = 0
-} else if( ChromaArrayType = = 3 ) {
-residual_luma( i16x16DClevel, i16x16AClevel, level4x4, level8x8, startIdx, endIdx )
-3 | 4
-CbIntra16x16DCLevel = i16x16DClevel
-CbIntra16x16ACLevel = i16x16AClevel
-CbLevel4x4 = level4x4
-CbLevel8x8 = level8x8
-residual_luma( i16x16DClevel, i16x16AClevel, level4x4, level8x8, startIdx, endIdx )
-3 | 4
-CrIntra16x16DCLevel = i16x16DClevel
-CrIntra16x16ACLevel = i16x16AClevel
-CrLevel4x4 = level4x4
-CrLevel8x8 = level8x8
-}
-*/
-
-
-	// }
+		}
+	}
+	public int NumSubMbPart(String type){
+		System.out.println("implemetation required line 645 NumSubMbPart");
+		return 0;
+	}
+	public String sub_mb_type(int idx){
+		System.out.println("implemetation sub_mb_type");
+		return"nill";
+	}
 	public void mb_pred(int mb_type){
+		// ref_idx_l0
+		// System.out.println("call to mb_pred");
 		if(MbPartPredMode(mb_type,0).equals("Intra_4x4")||
 			MbPartPredMode(mb_type,0).equals("Intra_8x8")||
 			MbPartPredMode(mb_type,0).equals("Intra_16x16")){
@@ -654,6 +768,7 @@ CrLevel8x8 = level8x8
 
 			}
 			if(MbPartPredMode(mb_type,0).equals("Intra_8x8")){
+				// System.out.println("seccond if ");
 				prev_intra8x8_pred_mode_flag=new boolean[4];
 				rem_intra8x8_pred_mode=new int [4];
 				for (int luma8x8BlkIdx=0;luma8x8BlkIdx<4 ;luma8x8BlkIdx++ ) {
@@ -666,15 +781,34 @@ CrLevel8x8 = level8x8
 				}
 			}
 			if(ChromaArrayType==1||ChromaArrayType==2){
+				// System.out.println("chroma tyoe 1 or 2");
 				intra_chroma_pred_mode=p.uev();
-			}else if(!MbPartPredMode(mb_type,0).equals("Direct")){
-				// ref_idx_l0
-				// for(int mbPartIdx=0;mbPartIdx<NumMbPart(mb_type)){
+			}
+		}else if(!MbPartPredMode(mb_type,0).equals("Direct")){
+			
 
-				}
+
+			// for(int mbPartIdx=0;
+			// 	){
+
+			// }
+
+			// ref_idx_l0
+			// System.out.println("akhri wali ");
+			System.out.println("end of func");
+			// for(int mbPartIdx=0;mbPartIdx<NumMbPart(mb_type)){
+
 			}
 		}	
-		
+	// not for i slice
+	public int NumMbPart(int row){
+		String ret= p.Mb_Type("table7.13.txt",row,2);
+		System.out.println("implemetation NumMbPart required at line 684");
+		// return Integer.parseInt(ret);
+		return 0;
+	}
+	public void sub_mb_pred(int mb_type){}// not for i slice
+
 	public void macroblock_layer() {
 		// unimplemented
 		// table 7.11
@@ -698,9 +832,6 @@ CrLevel8x8 = level8x8
 			MbWidthC=16/getSubWidthC();
 			MbHeightC=16/getSubHeightC();
 		}
-		int CodedBlockPatternLuma,CodedBlockPatternChroma;
-
-
 		mbRow=p.uev();
 		System.out.println("mb row  "+mbRow);
 		// System.out.println(" came ");
@@ -721,6 +852,7 @@ CrLevel8x8 = level8x8
 			CodedBlockPatternLuma=Integer.parseInt(patLuma);
 
 		}
+		// System.out.println("");
 		// System.out.println(" ********************** slice layer unimplemented "+mb_type);
 		if(mb_type.equals("I_PCM")){
 			while(!p.byte_aligned()){
@@ -739,57 +871,57 @@ CrLevel8x8 = level8x8
 			for(int i=0;i<pcm_sample_chroma_Size;i++){
 				pcm_sample_chroma[i]=p.readBits(BitDepthC);
 			}
-		}else if(!mb_type.equals("I_NxN")&& !MbPartPredMode(mbRow,0).equals("Intra_16x16")
-			){
-			// &&NumMbPart(mbRow)==4
+		}else {			// &&NumMbPart(mbRow)==4
 			noSubMbPartSizeLessThan8x8Flag=true;
-			// if())
-			// 	MbPartPredMode( mb_type, 0 ) != Intra_16x16 && 
-			// NumMbPart( mb_type ) = = 4 ) 
-			// { sub_mb_pred( mb_type ) 2 
-			// 	for( mbPartIdx = 0; mbPartIdx < 4; mbPartIdx++ ) 
-			// 		if( sub_mb_type[ mbPartIdx ] != B_Direct_8x8 ) 
-			// 			{ if( NumSubMbPart( sub_mb_type[ mbPartIdx ] )
-			// 			 > 1 ) noSubMbPartSizeLessThan8x8Flag = 0 }
-			// 			  else if( !direct_8x8_inference_flag ) 
-			// 			  	noSubMbPartSizeLessThan8x8Flag = 0
-		}else{
-			if(pps0.transform_8x8_mode_flag&& mb_type.equals("I_NxN")){
-				transform_size_8x8_flag=p.getBit();
-			mb_pred(mbRow);
-			}
-		}
-		if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
-			coded_block_pattern=p.mev(1);
-		
-			if(patChroma.equals("Equation7-36")){
-				// System.out.println("CodedBlockPatternLuma");
-				CodedBlockPatternChroma=(int)coded_block_pattern/16;
-				CodedBlockPatternLuma=(int)coded_block_pattern%16;
+			if(!mb_type.equals("I_NxN")&& !MbPartPredMode(mbRow,0).equals("Intra_16x16")
+			&&NumMbPart(mbRow)==4){
+				System.out.println("sub_mb_pred unimplemented");
+				sub_mb_pred(mbRow);
+				for(int mbPartIdx=0;mbPartIdx<4;mbPartIdx++){
+					if(!sub_mb_type(mbPartIdx).equals("B_Direct_8x8")){
+						if(NumSubMbPart(sub_mb_type(mbPartIdx))>1){
+							noSubMbPartSizeLessThan8x8Flag=false;
+						}
+					}else if(!sps0.direct_8x8_inference_flag){
+						noSubMbPartSizeLessThan8x8Flag=false;
+					}
+				}
 			}else{
-				CodedBlockPatternChroma=Integer.parseInt(patChroma);
-				CodedBlockPatternLuma=Integer.parseInt(patLuma);
-				// System.out.println("CodedBlockPatternChroma "+coded_block_pattern);
+
+				if(pps0.transform_8x8_mode_flag&& mb_type.equals("I_NxN")){
+					transform_size_8x8_flag=p.getBit();
+				}
+				mb_pred(mbRow);
 			}
-			if(CodedBlockPatternLuma>0&&pps0.transform_8x8_mode_flag&&!mb_type.equals("I_NxN")
-				&&noSubMbPartSizeLessThan8x8Flag&&(!mb_type.equals("B_Direct_16x16")||sps0.direct_8x8_inference_flag)){
-				transform_size_8x8_flag=p.getBit();
-				// System.out.println("transform_size_8x8_flag  ");
+			if(!MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+				coded_block_pattern=p.mev(1);
+			
+				if(patChroma.equals("Equation7-36")){
+					// System.out.println("CodedBlockPatternLuma");
+					CodedBlockPatternChroma=(int)coded_block_pattern/16;
+					CodedBlockPatternLuma=(int)coded_block_pattern%16;
+				}else{
+					CodedBlockPatternChroma=Integer.parseInt(patChroma);
+					CodedBlockPatternLuma=Integer.parseInt(patLuma);
+					// System.out.println("CodedBlockPatternChroma "+coded_block_pattern);
+				}
+				if(CodedBlockPatternLuma>0&&pps0.transform_8x8_mode_flag
+					&&!mb_type.equals("I_NxN")
+					&&noSubMbPartSizeLessThan8x8Flag&&(!mb_type.equals("B_Direct_16x16")
+						||sps0.direct_8x8_inference_flag)){
+					transform_size_8x8_flag=p.getBit();
+					// System.out.println("transform_size_8x8_flag  ");
+				}
+			}
+
+			if(CodedBlockPatternLuma>0||CodedBlockPatternChroma>0||
+				MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+				mb_qp_delta=p.sev();
+				System.out.println("call to "+mb_qp_delta);
+				residual(0,15);
 			}
 		}
-
-		if(CodedBlockPatternLuma>0||CodedBlockPatternChroma>0||
-			MbPartPredMode(mbRow,0).equals("Intra_16x16")){
-			mb_qp_delta=p.sev();
-			// System.out.println("call to "+mb_qp_delta);
-			residual(0,15);
-		}
-
 	}
-
-
-
-
 }
 
 

@@ -118,6 +118,8 @@ public class nal
 		// }
 		sps sps0 = new sps(mp4_0.spsData);
 		pps pps0=new pps(mp4_0.ppsData);
+		// System.out.println("flag is    "+pps0.transform_8x8_mode_flag);
+		// System.out.println("color "+sps0.separate_colour_plane_flag);
 		// test.nalOffSet=mp4_0.
 		Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test);
 	}
