@@ -5,6 +5,8 @@ public class Slice{
 	sps sps0;
 	pps pps0;
 	nal nal0;
+	int[] scalingList ={6,13,13,20,20,20,28,28,28,28,32,32,32,37,37,42};
+	// int[] scalingList=new int[16];
 	boolean no_output_of_prior_pics_flag; //u1
 	boolean long_term_reference_flag;//u1
 	boolean adaptive_ref_pic_marking_mode_flag;//u1
@@ -47,11 +49,8 @@ public class Slice{
 	// slice data variables 
 	int cabac_alignment_one_bit;
 	// MbaffFrameFlag
-	boolean MbaffFrameFlag; // used for CurrMbAddress address calculation . sumran
-							// saw the formulae for the C file found later, 
-							// MbaffFrameFlag = sps0.mb_adaptive_frame_field_flag
-							// && (fieldpicFlag == 0 )
-	int CurrMbAddr;      // needed extensively for parsing slice data
+	boolean MbaffFrameFlag; 
+	int CurrMbAddr;      
 	boolean moreDataFlag; //  
 	boolean prevMbSkipped; //
 	int mb_skip_run;
@@ -65,7 +64,7 @@ public class Slice{
 	int [] pcm_sample_luma; //uv [256]
 	int [] pcm_sample_chroma; //2 * MbWidthC * MbHeightC // uv
 
-	boolean transform_size_8x8_flag; //u1|aev
+	boolean transform_size_8x8_flag=false;//if not in bit stream //u1|aev
 	int coded_block_pattern; //aev mev
 	// boolean transform_size_8x8_flag; //u1|aev
 	int mb_qp_delta; //sev|aev
@@ -88,17 +87,47 @@ public class Slice{
 	int blkB;
 	int CodedBlockPatternLuma,CodedBlockPatternChroma;
 	int mbAddrA,mbAddrB,luma4x4BlkIdxB,luma4x4BlkIdxA;
+	int[] Intra16x16DCLevel;
+	int[][] Intra16x16ACLevel;
+	int[][] LumaLevel4x4;
+	int[][] LumaLevel8x8;
+
+	int NumC8x8;
+	int[][] ChromaDCLevel;
+	int [][][] ChromaACLevel;
 
 
+	int[] CbIntra16x16DCLevel;
+	int[][] CbIntra16x16ACLevel;
+	int[][] CbLevel4x4;
+	int[][] CbLevel8x8;
+
+
+
+	int[] CrIntra16x16DCLevel;
+	int[][] CrIntra16x16ACLevel;
+	int[][] CrLevel4x4;
+	int[][] CrLevel8x8;
+
+	int BitDepthY;
+	int BitDepthC;
 	int ChromaArrayType;
-
+	boolean sMbFlag;
+	int BitDepth;
+	int qp;
+	int QPY=0;
+	int QpBdOffsetY;
+	boolean TransformBypassModeFlag;
+	boolean mbIsInterFlag;
+	int PicWidthInSamplesL;
+	int PicWidthInMbs;
+	int [][] predL;
 	Slice(byte[] rbsp,sps sps_,pps pps_,nal nal_0){
+		// System.out.println("slice header");
 		sps0=sps_;
 		pps0=pps_;
 		nal0=nal_0;
 		p=new parser(rbsp);
-		slice_layer_without_partitioning_rbsp();
-			// MbaffFrameFlag = ( mb_adaptive_frame_field_flag && !field_pic_flag )
 		if(sps0.mb_adaptive_frame_field_flag&&!field_pic_flag){
 			MbaffFrameFlag=true;
 		}else{
@@ -109,9 +138,15 @@ public class Slice{
 		}else{
 			ChromaArrayType=0;
 		}
+		BitDepthY=8+sps0.bit_depth_luma_minus8;
+		PicWidthInMbs=sps0.pic_width_in_mbs_minus_1+1;
+		// System.out.println("pic_width_in_mbs_minus_1 "+PicWidthInMbs);
+		PicWidthInSamplesL=PicWidthInMbs*16;
+		slice_layer_without_partitioning_rbsp();
 
+		
 		// If separate_colour_plane_flag is equal to 0, ChromaArrayType is set equal to chroma_format_idc.
-// – Otherwise (separate_colour_plane_flag is equal to 1), ChromaArrayType is set equal to 0.
+		// – Otherwise (separate_colour_plane_flag is equal to 1), ChromaArrayType is set equal to 0.
 	}
 	public void slice_layer_without_partitioning_rbsp(){
 		slice_header();	
@@ -120,22 +155,460 @@ public class Slice{
 		// rbsp_slice_trailing_bits(); // 
 	}
 
-/*
 
-	0	P (P slice)
-	1	B (B slice)
-	2	I (I slice)
-	3	SP (SP slice)
-	4	SI (SI slice)
-	5	P (P slice)
-	6	B (B slice)
-	7	I (I slice)
-	8	SP (SP slice)
-	9	SI (SI slice)
+	public int LevelScale4x4(int m,int i,int j){
+		int[] scalingList ={6,13,13,20,20,20,28,28,28,28,32,32,32,37,37,42};
 
-*/
+		int [][] v=
+		{{10, 16, 13},
+		{11, 18, 14},
+		{13,20,16},
+		{14,23,18},
+		{16,25,20},
+		{18,29,23}};
+		mbIsInterFlag=false;
+		int iYCbCr;
+		if(sps0.separate_colour_plane_flag){
+			iYCbCr=colour_plane_id;
+		}else {
+			iYCbCr=0;
+		}
+		// 16*
+		// normadjus
+		int[][] weightScale4x4=Inverse_zigzag_process(scalingList);
+
+		if(i%2==0&&j%2==0){
+			// System.out.println(weightScale4x4[i][j]*v[m][0]+"LevelScale4x4");
+			return weightScale4x4[i][j]*v[m][0];
+			// return 16*v[m][0];
+		}else if(i%2==1&&j%2==1){
+			// return 16*v[m][1];
+
+			return weightScale4x4[i][j]*v[m][1];
+		}else{
+			// return 16*v[m][2];
+
+			return weightScale4x4[i][j]*v[m][2];
+		}
+	}
+	int InverseRasterScan(int a,int b,int c,int d,int e){
+		int ret=0;
+		if(e==0){
+			// System.out.println("a=="+d+"b "+b);
+			ret=(a%(d/b))*b;
+		}else if(e==1){
+			ret=(a/(d/b))*c;
+		}
+		return ret;
+	}
+	// 8.5.12
+	int [][] Scaling_and_transformation_process(int [][] c){
+
+		BitDepth=8+sps0.bit_depth_luma_minus8;
+		sMbFlag=false;
+		if(!sMbFlag){
+			QpBdOffsetY=6*sps0.bit_depth_luma_minus8;
+			QPY=((QPY+mb_qp_delta+52+2*QpBdOffsetY)%(52+QpBdOffsetY))-QpBdOffsetY;
+			qp=QPY+QpBdOffsetY;
+		}else{
+			// qp=qsy
+			int QSY =26+pps0.pic_init_qs_minus26+slice_qs_delta;
+			qp=QSY;
+		}
+		if(sps0.qpprime_y_zero_transform_bypass_flag&&QPY+QpBdOffsetY==0){
+			TransformBypassModeFlag=true;
+		}else if(!sps0.qpprime_y_zero_transform_bypass_flag||QPY+QpBdOffsetY!=0){
+			TransformBypassModeFlag=false;
+		}
+		int [][] r=new int [4][4];
+		if(TransformBypassModeFlag){
+			for (int i=0;i<4 ;i++ ) {
+				for(int j=0;j<4;j++){
+					r[i][j]=c[i][j];
+				}
+			}
+		} else if(!TransformBypassModeFlag){
+			// clause 8.5.12.1
+			int [][] d=new int [4][4];
+			for(int i=0;i<4 ;i++){
+				for(int j=0;j<4;j++){
+					if(i==0&&j==0){
+						d[i][j]=c[i][j];
+					}else{
+						if(qp>=24){
+							d[i][j]=(c[i][j]*LevelScale4x4(qp%6,i,j))<<(qp/6 -4);
+							// System.out.print(c[i][j]+" ");
+
+						}else{
+							d[i][j]=(int)(c[i][j]*LevelScale4x4(qp%6,i,j)+Math.pow(2,(3-qp/6)))>>(int)(4-qp/6);
+							// System.out.print(d[i][j]+" ");
+
+						}
+					}
+					// r[i][j]=c[i][j];
+				}
+			}
+			// for(int i=0;i<4 ;i++){
+			// 	for(int j=0;j<4;j++){
+			// 		System.out.print(d[i][j]+" ");
+			// 	}
+			// 	System.out.println();
+			// }
+			// clause 8.5.12.2
+			int [][] e=new int[4][4];
+			int [][] h= new int[4][4];
+			for(int i=0;i<4;i++){
+				e[i][0]=d[i][0]+d[i][2];
+			}
+			for(int i=0;i<4;i++){
+				e[i][1]=d[i][0]-d[i][2];
+			}
+			for(int i=0;i<4;i++){
+				e[i][2]=(d[i][1]>>1) - d[i][3];
+			}
+			for(int i=0;i<4;i++){
+				e[i][3]=d[i][1]+d[i][3]>>1;
+			}
+			int[][] f=new int[4][4];
+			for(int i=0;i<4;i++){
+				f[i][0]=e[i][0]+e[i][3];
+			}
+			for(int i=0;i<4;i++){
+				f[i][1]=e[i][1]+e[i][2];
+			}
+			for(int i=0;i<4;i++){
+				f[i][2]=e[i][1]-e[i][2];
+			}
+			for(int i=0;i<4;i++){
+				f[i][3]=e[i][0]-e[i][3];
+			}
+			int [][] g= new int[4][4];
+
+			for(int i=0;i<4;i++){
+				g[0][i]=f[0][i]+f[2][i];
+			}
+			for(int i=0;i<4;i++){
+				g[1][i]=f[0][i]-f[2][i];
+			}
+			for(int i=0;i<4;i++){
+				g[2][i]=(f[1][i]>>1)-f[3][i];
+			}
+			for(int i=0;i<4;i++){
+				g[3][i]=f[1][i]+(f[3][i]>>1);
+			}
+			for(int i=0;i<4;i++){
+				h[0][i]=g[0][i]+g[3][i];
+			}
+			
+			for(int i=0;i<4;i++){
+				h[1][i]=g[1][i]+g[2][i];
+			}
+
+			for(int i=0;i<4;i++){
+				h[2][i]=g[1][i]-g[2][i];
+			}
+
+			for(int i=0;i<4;i++){
+				h[3][i]=g[0][i]-g[3][i];
+			}
+
+			for(int i=0;i<4 ;i++){
+				for(int j=0;j<4;j++){
+					// System.out.println(h[i][j]+" ");
+					r[i][j]=(int)(h[i][j]+Math.pow(2,5))>>6;
+					// System.out.print(" "+r[i][j]);
+				}
+			}
+		}
+		return r;
+	}
+	// clause 8.5.6-zigzag
+	public int[][] Inverse_zigzag_process(int [] input){
+
+		int [][]ret=new int [4][4];
+		int[] zigzag={0,1,5,6
+			,2,4,7,12
+			,3,8,1,13
+			,9,10,14,15};
+		int index=0;
+		for(int i=0;i<4;i++){
+			for(int j=0;j<4;j++){
+				ret[i][j]=input[zigzag[index]];
+				index++;
+			}
+		}
+		return ret;
+	}
+	public int[][] matrixMul(int[][] a ,int[][] b){
+		int [][] c=new int[4][4];
+		for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    c[i][j] = c[i][j] + a[i][k] * b[k][j];
+                }
+            }
+        }
+        return c;
+	}
 	public void Transform_coefficient_decoding(){
+		// predL[ x, y ] = ( 1 << ( BitDepthY − 1 ) ), with x, y = 0..15
+		predL=new int[16][16];
+		System.out.println("BitDepth "+BitDepthY);
+
+		for(int i=0;i<16;i++){
+			for(int j=0;j<16;j++){
+				predL[i][j]=(1<<(BitDepthY-1));
+				// System.out.print(predL[i][j] +" ");
+			}
+		}
+
+		int [][] SL=new int [16][16];
+		int nE,x0,y0;
+		int xp=0;
+		int yp=0;
+		int [][] c,r;
+		int [][] rMB=new int[16][16];
+		// int LumaLevel4x4
+		int[] zigzag={0,1,5,6
+			,2,4,7,12
+			,3,8,1,13
+			,9,10,14,15};
+		int[] fieldScan={0,2,8,12,
+			1,5,9,13,
+			3,6,10,14,
+			4,7,11,15};
+		// 8.5.1
+		if(!transform_size_8x8_flag){
+			for(luma4x4BlkIdx=0;luma4x4BlkIdx<16;luma4x4BlkIdx++){
+					//clause 8.5.6
+				// input
+				// LumaLevel4x4[luma4x4BlkIdx];
+				int index=0;
+				c = new int[4][4];
+				for(int i=0;i<4;i++){
+					for (int j=0;j<4 ;j++ ) {
+						c[i][j]=LumaLevel4x4[luma4x4BlkIdx][zigzag[index]];
+						index++;
+					}
+				}
+				r=Scaling_and_transformation_process(c);
+				if(TransformBypassModeFlag&& MbPartPredMode(mbRow,0).equals("Intra_4x4")){
+					System.out.println("implemetation of clause 8.5.15");
+				}
+				// clause 6.4.3
+				int x=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,0)+
+				InverseRasterScan(luma4x4BlkIdx%4,4,4,8,0);
+				int y=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,1)+
+				InverseRasterScan(luma4x4BlkIdx%4,4,4,8,1);
+				int[][] u=new int [4][4];
+				for(int i=0;i<4 ;i++){
+					for(int j=0;j<4;j++){
+						// "    "
+						// u[i][j]=clip1y(predL[x+j,y+i]+r[i][j]);
+
+						u[i][j]=clip1y(predL[x+j][i+y]+r[i][j]);
+						// System.out.print(" "+u[i][j]);
+					}
+					// System.out.println();
+				}
+
+				// clause 6.4.1
+				
+				if(MbaffFrameFlag==false){
+					// System.out.println("flag is false");
+					xp=InverseRasterScan(CurrMbAddr,16,16,PicWidthInSamplesL,0);
+					yp=InverseRasterScan(CurrMbAddr,16,16,PicWidthInSamplesL,1);
+				}else if (MbaffFrameFlag==true){
+					x0=InverseRasterScan(CurrMbAddr/2,16,32,PicWidthInSamplesL,0);
+					y0=InverseRasterScan(CurrMbAddr/2,16,32,PicWidthInSamplesL,1);
+					xp=x0;
+					yp=y0+(CurrMbAddr%2)*16;
+				}
+
+				nE=4;
+				x0=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,0)+
+				InverseRasterScan(luma4x4BlkIdx%4,4,4,8,0);
+
+				y0=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,1)+
+				InverseRasterScan(luma4x4BlkIdx%4,4,4,8,1);
+				for(int i=0;i<nE;i++){
+					for(int j=0;j<nE;j++){
+						if(!MbaffFrameFlag){
+							SL[xp+x0+j][yp+y0+i]=u[i][j];
+						}
+					}
+				}
+
+				// rMB
+
+			}	
+		}
+		// 8.5.2
+		int [][]dcy;
+		int m=0;
+		int n=0;
+		// System.out.println(TransformBypassModeFlag+" TransformBypassModeFlag");
+		if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+			int [] lumaList=new int[16];
+			c=Inverse_zigzag_process(Intra16x16DCLevel);
+			dcy=transformation_process_for_DC(c);
+			// System.out.println("dcy "+dcy[0][0]);
+			for(luma4x4BlkIdx=0;luma4x4BlkIdx<16;luma4x4BlkIdx++){
+				lumaList[0]=dcy[m][n];
+				n++;
+				if(n==4){
+					n=0;
+					m++;
+				}
+				for(int k=1;k<16;k++){
+					lumaList[k]=Intra16x16ACLevel[luma4x4BlkIdx][k-1];
+
+				}
+				c=Inverse_zigzag_process(lumaList);
+				
+				r=Scaling_and_transformation_process(c);
+				// for(int i=0;i<4;i++){
+				// 	for(int j=0;j<4;j++){
+				// 		System.out.print(r[i][j]+" ");
+				// 	}	
+				// 	System.out.println();
+				// }
+				int [] xy=Inverse_4x4_luma_block_scanning_process(luma4x4BlkIdx);
+				x0=xy[0];
+				y0=xy[1];
+				for(int i=0;i<4;i++){
+					for(int j=0;j<4;j++){
+						rMB[x0+j][y0+i]=r[i][j];
+
+					}
+				}
+
+
+			}
+			
+			int [][] u=new int [16][16];
+			for(int i=0;i<16;i++){
+				for(int j=0;j<16;j++){
+					// uij = Clip1Y( predL[ j, i ] + rMb[ j, i ] )
+					u[i][j]=clip1y(predL[j][i]+rMB[j][i]);
+					// System.out.print(rMB[i][j]+" ");
+				}	
+				// System.out.println();
+			}
+			for(int i=0;i<16;i++){
+					for(int j=0;j<16;j++){
+						// System.out.print(u[i][j]+" ");
+					}	
+					// System.out.println();
+			}
+			x0=0;
+			y0=0;
+			nE=16;
+			for(int i=0;i<nE;i++){
+				for(int j=0;j<nE;j++){
+					if(MbaffFrameFlag){
+						SL[xp+x0+j][yp+2*(y0+i)]=u[i][j];
+					}else if(!MbaffFrameFlag){
+						SL[xp+x0+j][yp+y0+i]=u[i][j];
+						// System.out.println();
+					}
+					// u[i][j]=clip1y(0+rMB[i][j]);
+					// System.out.print(rMB[i][j]+" ");
+				}	
+				// System.out.println();
+			}
+
+			for(int i=0;i<nE;i++){
+				for(int j=0;j<nE;j++){
+					System.out.print(SL[i][j]+" ");
+				}
+				System.out.println();
+			}
+			
+
+
+
+		}
+
+
 		
+	}
+	// 8.5.10
+	public int[][] transformation_process_for_DC(int [][]c){
+		// qp'y
+		int [][] dcy=new int[4][4];
+		int [][] a=
+		{{1,1,1,1},
+		{1,1,-1,-1},
+		{1,-1,-1,1},
+		{1,-1,1,-1}};
+		
+		int [][]f;
+		
+		if(TransformBypassModeFlag){
+			for (int i=0;i<4 ;i++ ) {
+				for (int j=0;j<4 ;j++ ) {
+					dcy[i][j]=c[i][j];
+				}
+			}
+		}else if (!TransformBypassModeFlag){
+			f=matrixMul(a,c);
+			f=matrixMul(f,a);
+		
+		// QPY=((QPY+mb_qp_delta+52+2*QpBdOffsetY)%(52+QpBdOffsetY))-QpBdOffsetY;
+			qp=QPY+QpBdOffsetY;
+			// qp=QPY;
+
+			// System.out.println("qp "+qp);
+			if(qp>=36){
+				// System.out.println(f[0][0]+"fij");
+				for (int i=0;i<4 ;i++ ) {
+					for (int j=0;j<4 ;j++ ) {
+
+						dcy[i][j]=(f[i][j]*LevelScale4x4(qp%6,0,0))<<(qp/6 -6);
+					}
+				}
+			}else if(qp<36){
+				for (int i=0;i<4 ;i++ ) {
+					for (int j=0;j<4 ;j++ ) {
+						dcy[i][j]=(f[i][j]*LevelScale4x4(qp%6,0,0)+(1<<(5-qp/6)))>>(6-qp/6);
+					}
+				}
+			}
+		}
+		// for (int i=0;i<4 ;i++ ) {
+		// 		for (int j=0;j<4 ;j++ ) {
+		// 			System.out.print(dcy[i][j]+" ");
+		// 			}
+		// 			System.out.println();
+		// 	}
+		return dcy;
+	}
+	public int[] Inverse_4x4_luma_block_scanning_process(int index){
+
+		int x=InverseRasterScan(index/4,8,8,16,0)+
+		InverseRasterScan(index%4,4,4,8,0);
+		int y=InverseRasterScan(index/4,8,8,16,1)+
+		InverseRasterScan(index%4,4,4,8,1);
+		int[] ret = new int[2];
+		ret[0]=x;
+		ret[1]=y;
+		return ret;
+	}
+	public int clip1y(int x){
+		return clip3(0,(1<<BitDepthY)-1,x);
+	}
+	public int clip3(int x, int y,int z){
+		if(z<x){
+			return x;
+		}else if(z>y){
+			return y;
+		}else{
+			return z;
+		}
 	}
 
 	public void dec_ref_pic_marking(){
@@ -334,8 +807,8 @@ public class Slice{
 
 
 		//The variables PicHeightInMapUnits and PicSizeInMapUnits are derived as
-	// PicHeightInMapUnits = pic_height_in_map_units_minus1 + 1 (7-16)
-	// PicSizeInMapUnits = PicWidthInMbs * PicHeightInMapUnits
+		// PicHeightInMapUnits = pic_height_in_map_units_minus1 + 1 (7-16)
+		// PicSizeInMapUnits = PicWidthInMbs * PicHeightInMapUnits
 		int PicSizeInMapUnits= (sps0.pic_width_in_mbs_minus_1+1)*(sps0.pic_height_in_map_units_minus_1+1);
 		int FrameHeightInMbs = (2-(sps0.frame_mbs_only_flag ? 1:0))*(sps0.pic_height_in_map_units_minus_1+1);
  		int PicHeightInMbs = FrameHeightInMbs / (1+(field_pic_flag ? 1:0));
@@ -396,10 +869,10 @@ public class Slice{
  			}
 
  		}
-// i = n + 1 
-// while( i < PicSizeInMbs && MbToSliceGroupMap[ i ] != MbToSliceGroupMap[ n ] )
- // i++; 
-// nextMbAddress = i
+		// i = n + 1 
+		// while( i < PicSizeInMbs && MbToSliceGroupMap[ i ] != MbToSliceGroupMap[ n ] )
+		 // i++; 
+		// nextMbAddress = i
 		int i = n + 1;
 		// int nextMbAddress = i;
 
@@ -575,22 +1048,22 @@ public class Slice{
 		int[][] i16x16AClevel=new int[16][16];
 		int[][] level4x4=new int[16][16];
 		int[][] level8x8=new int[16][64];
-		int[] Intra16x16DCLevel;
-		int[][] Intra16x16ACLevel;
-		int[][] LumaLevel4x4;
-		int[][] LumaLevel8x8;
-		int NumC8x8=4/(getSubHeightC()*getSubWidthC());
-		int[][] ChromaDCLevel=new int[2][NumC8x8*4];
-		int [][][] ChromaACLevel=new int[2][NumC8x8][4];
-		int[] CbIntra16x16DCLevel;
-		int[][] CbIntra16x16ACLevel;
-		int[][] CbLevel4x4;
-		int[][] CbLevel8x8;
-		// residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
-		int[] CrIntra16x16DCLevel;
-		int[][] CrIntra16x16ACLevel;
-		int[][] CrLevel4x4;
-		int[][] CrLevel8x8;
+		NumC8x8=4/(getSubHeightC()*getSubWidthC());
+		ChromaDCLevel=new int[2][NumC8x8*4];
+		ChromaACLevel=new int[2][NumC8x8*4+4][15];
+		
+		// int NumC8x8=4/(getSubHeightC()*getSubWidthC());
+		// int[][] ChromaDCLevel=new int[2][NumC8x8*4];
+		// int [][][] ChromaACLevel=new int[2][NumC8x8][4];
+		// int[] CbIntra16x16DCLevel;
+		// int[][] CbIntra16x16ACLevel;
+		// int[][] CbLevel4x4;
+		// int[][] CbLevel8x8;
+		// // residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
+		// int[] CrIntra16x16DCLevel;
+		// int[][] CrIntra16x16ACLevel;
+		// int[][] CrLevel4x4;
+		// int[][] CrLevel8x8;
 
 		// System.out.println("residual");
 		if(!pps0.entropy_coding_mode_flag){
@@ -614,7 +1087,7 @@ public class Slice{
 		Intra16x16ACLevel=i16x16AClevel;
 		LumaLevel4x4=level4x4;
 		LumaLevel8x8=level8x8;
-		
+		// System.out.println("ChromaArrayType "+ChromaArrayType);
 		if(ChromaArrayType==1||ChromaArrayType==2){
 			for(int iCbCr=0;iCbCr<2;iCbCr++){
 				if(((CodedBlockPatternChroma & 3)!=0)&&startIdx==0){
@@ -645,6 +1118,8 @@ public class Slice{
 				}
 			}
 		}else if(ChromaArrayType==3){
+			// System.out.println("chroma component present");
+
 			cb4x4BlkIdx=0;
 			// System.out.println("ChromaArrayType==3");
 			residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
@@ -666,11 +1141,11 @@ public class Slice{
 		if(startIdx==0&&MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 			// luma4x4BlkIdx=0;
 			setnC();
-			// System.out.println("dc");
+			System.out.println("i16x16DClevel");
 			p.residual_block_cavlc(i16x16DClevel,0,15,16);
 		}
 
-		// System.out.println("transform_size_8x8_flag "+transform_size_8x8_flag);
+		System.out.println("transform_size_8x8_flag "+transform_size_8x8_flag);
 		for(int i8x8=0;i8x8<4;i8x8++){
 			if(!transform_size_8x8_flag||!pps0.entropy_coding_mode_flag){
 				for(int i4x4=0;i4x4<4;i4x4++){
@@ -757,7 +1232,7 @@ public class Slice{
 			if(MbPartPredMode(mb_type,0).equals("Intra_4x4")){
 				prev_intra4x4_pred_mode_flag=new boolean[16];
 				rem_intra4x4_pred_mode=new int [16];
-				for (int luma4x4BlkIdx=0;luma4x4BlkIdx<16 ;luma4x4BlkIdx++ ) {
+				for (luma4x4BlkIdx=0;luma4x4BlkIdx<16 ;luma4x4BlkIdx++ ) {
 					prev_intra4x4_pred_mode_flag[luma4x4BlkIdx]=p.getBit();
 					if(!prev_intra4x4_pred_mode_flag[luma4x4BlkIdx]){
 						rem_intra4x4_pred_mode[luma4x4BlkIdx]=p.readBits(3);
@@ -859,7 +1334,7 @@ public class Slice{
 				pcm_alignment_zero_bit=p.readBits(1);
 			}
 			pcm_sample_luma=new int[256];
-			int BitDepthY = 8 + sps0.bit_depth_luma_minus8;
+			BitDepthY = 8 + sps0.bit_depth_luma_minus8;
 
 			for(int i=0;i<256;i++){
 				pcm_sample_luma[i]=p.readBits(BitDepthY);
@@ -867,7 +1342,8 @@ public class Slice{
 
 			int pcm_sample_chroma_Size=2*MbWidthC*MbHeightC;
 			pcm_sample_chroma=new int[pcm_sample_chroma_Size];
-			int BitDepthC = 8 + sps0.bit_depth_chroma_minus8;
+			
+			BitDepthC = 8 + sps0.bit_depth_chroma_minus8;
 			for(int i=0;i<pcm_sample_chroma_Size;i++){
 				pcm_sample_chroma[i]=p.readBits(BitDepthC);
 			}
@@ -919,6 +1395,7 @@ public class Slice{
 				mb_qp_delta=p.sev();
 				System.out.println("call to "+mb_qp_delta);
 				residual(0,15);
+				Transform_coefficient_decoding();
 			}
 		}
 	}

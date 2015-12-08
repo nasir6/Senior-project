@@ -10,3 +10,36 @@ sub_mb_type():
 row 5 col 6
 Table 7.17-18
 P and B slices
+
+
+8.5.1 Specification of transform decoding process for 4x4 luma residual blocks
+This specification applies when transform_size_8x8_flag is equal to 0.
+
+
+BitDepthY = 8 + bit_depth_luma_minus8
+
+
+QSY = 26 + pic_init_qs_minus26 + slice_qs_delta
+
+QPY = ( ( QPY,PREV + mb_qp_delta + 52 + 2 * QpBdOffsetY ) % ( 52 + QpBdOffsetY ) ) − QpBdOffsetY
+QP′Y = QPY + QpBdOffsetY
+QpBdOffsetY = 6 * bit_depth_luma_minus8
+
+If qpprime_y_zero_transform_bypass_flag is equal to 1 and QP′Y is equal to 0, TransformBypassModeFlag is set equal to 1.
+– Otherwise (qpprime_y_zero_transform_bypass_flag is equal to 0 or QP′Y is not equal to 0), TransformBypassModeFlag is set equal to 0.
+PicWidthInSamplesL = PicWidthInMbs * 16
+
+/*
+
+	0	P (P slice)
+	1	B (B slice)
+	2	I (I slice)
+	3	SP (SP slice)
+	4	SI (SI slice)
+	5	P (P slice)
+	6	B (B slice)
+	7	I (I slice)
+	8	SP (SP slice)
+	9	SI (SI slice)
+
+// */

@@ -13,7 +13,7 @@ public class sps{
 	boolean separate_colour_plane_flag;//u1
 	int bit_depth_luma_minus8;//uev
 	int bit_depth_chroma_minus8;//uev
-	boolean qpprime_y_zero_transform_bypass_flag;//u1
+	boolean qpprime_y_zero_transform_bypass_flag=false;//u1
 	boolean seq_scaling_matrix_present_flag;//u1
 	boolean seq_scaling_list_present_flag[];
 
@@ -51,6 +51,8 @@ public class sps{
 	sps(byte spsSet[]){
 		separate_colour_plane_flag=false;
 		chroma_format_idc=1;
+
+		
 		seq_parameter_set=spsSet;//  
 		parser p1= new parser(seq_parameter_set);
 		// System.out.println(seq_parameter_set.length);

@@ -121,6 +121,7 @@ public class nal
 		// System.out.println("flag is    "+pps0.transform_8x8_mode_flag);
 		// System.out.println("color "+sps0.separate_colour_plane_flag);
 		// test.nalOffSet=mp4_0.
+		// System.out.println("qpprime_y_zero_transform_bypass_flag "+sps0.qpprime_y_zero_transform_bypass_flag);
 		Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test);
 	}
 
