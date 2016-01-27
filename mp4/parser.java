@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.lang.String;
 public class parser{
 		int pointer;
+		boolean trailing_ones_sign_flag;
 		int nC;
 		int maxNumCoeff;
 		int[] coeffLevel;
 		byte[] bytestream;
+		int TotalCoeff;
 		int startIdx, endIdx;
 	parser(byte[] array){
 		bytestream=array;
@@ -264,7 +266,8 @@ public class parser{
 			match=match+readBits(1);
 			for(int k=0;k<62;k++){
 				if(lookupTable[k][lookupcolom].equals(match)){
-					// System.out.println(match);
+
+					System.out.println("match string "+match);
 					matchedat=k;
 					numofcof_t1s[0]=Integer.parseInt(lookupTable[k][0]);
 					numofcof_t1s[1]=Integer.parseInt(lookupTable[k][1]);
@@ -290,37 +293,18 @@ public class parser{
 		System.out.println();
 	}
 	public int[] cavlc_decoder(){
-		// load table 9.5
-		// maxNumCoeff=16;
+		System.out.println("pointer is at "+pointer);
 		int[] levelVal = new int[maxNumCoeff];
 		// step 1
 		for (int i=0;i<maxNumCoeff ;i++ ) {
 			levelVal[i]=0;
 			coeffLevel[i]=0;
 		}
-		// step 2 Total number of non-zero and tailing ones by clause 9.2.1
-		// 9.2.1
-		// inputs => bits from slice data
-			// maxNumCoeff
-			//luma4x4BlkIdx
-			//chroma4x4BlkIdx
-
-
-
-
-		// outputs =>
-			// TotalCoeff
-			// TrailingOnes
-			// nC
 		int[] ret=cavlcTableLookUp("table9.5.txt",62,8);
-		// System.out.println(ret[0]+" "+ret[1]);
-		int TotalCoeff=ret[1];
+		// System.out.println("ones and zeros "+ret[0]+" "+ret[1]);
+		TotalCoeff=ret[1];
 		int TrailingOnes=ret[0];
 		int nC=ret[2];
-		// 9.2.2
-		// inputs =>
-		//slice data bits
-		//total coeff+t1s
 		int index=0;
 		for(int i=0;i<TrailingOnes;i++){
 			int read_Bits= readBits(1);
@@ -333,11 +317,10 @@ public class parser{
 			index=index+1;
 		}
 		int suffixLength=0;
-		if(TotalCoeff<=10&&TrailingOnes==3){
-			suffixLength=0;
-		}
 		if(TotalCoeff>10&&TrailingOnes<3){
 			suffixLength=1;
+		}else{
+			suffixLength=0;
 		}
 		int remainingCoeff=TotalCoeff - TrailingOnes;
 		int level_prefix=0;
@@ -509,6 +492,7 @@ public class parser{
 			index=index-1;
 			
 		}
+		System.out.println("pointer is at "+pointer);
 		// coeffLevel_=coeffLevel;
 		return coeffLevel;
 	}

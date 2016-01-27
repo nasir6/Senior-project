@@ -1,7 +1,12 @@
 // 
 // 7.3.3 Slice header syntax
+import java.util.*;
+
 
 public class Slice{
+	ArrayList <MacroBlock> MacroBlockData= new ArrayList<MacroBlock>();
+	// ;
+	int [][] SL=new int [16][16];
 	sps sps0;
 	pps pps0;
 	nal nal0;
@@ -86,7 +91,8 @@ public class Slice{
 	int blkA;
 	int blkB;
 	int CodedBlockPatternLuma,CodedBlockPatternChroma;
-	int mbAddrA,mbAddrB,luma4x4BlkIdxB,luma4x4BlkIdxA;
+	int mbAddrA,mbAddrB,luma4x4BlkIdxB,luma4x4BlkIdxA,mbAddrC,mbAddrD,maxW,maxH,xW,yW,xA,yA,xB,yB,nA,nB,nC;
+	boolean availableFlagA,availableFlagB,availableFlagC,availableFlagD;
 	int[] Intra16x16DCLevel;
 	int[][] Intra16x16ACLevel;
 	int[][] LumaLevel4x4;
@@ -133,6 +139,7 @@ public class Slice{
 		}else{
 			MbaffFrameFlag=false;
 		}
+		System.out.println(" MbaffFrameFlag "+MbaffFrameFlag);
 		if(sps0.separate_colour_plane_flag==false){
 			ChromaArrayType=sps0.chroma_format_idc;
 		}else{
@@ -365,7 +372,7 @@ public class Slice{
 			}
 		}
 
-		int [][] SL=new int [16][16];
+		
 		int nE,x0,y0;
 		int xp=0;
 		int yp=0;
@@ -434,9 +441,11 @@ public class Slice{
 
 				y0=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,1)+
 				InverseRasterScan(luma4x4BlkIdx%4,4,4,8,1);
+				// System.out.println("xp "+xp);
 				for(int i=0;i<nE;i++){
 					for(int j=0;j<nE;j++){
 						if(!MbaffFrameFlag){
+							// System.out.print(u[i][j]+" ");
 							SL[xp+x0+j][yp+y0+i]=u[i][j];
 						}
 					}
@@ -446,6 +455,12 @@ public class Slice{
 
 			}	
 		}
+		// for(int i=0;i<16;i++){
+		// 	for(int j=0;j<16;j++){
+		// 		System.out.print(SL[i][j]+" ");
+		// 	}	
+		// 	System.out.println();
+		// }
 		// 8.5.2
 		int [][]dcy;
 		int m=0;
@@ -455,6 +470,7 @@ public class Slice{
 			int [] lumaList=new int[16];
 			c=Inverse_zigzag_process(Intra16x16DCLevel);
 			dcy=transformation_process_for_DC(c);
+			
 			// System.out.println("dcy "+dcy[0][0]);
 			for(luma4x4BlkIdx=0;luma4x4BlkIdx<16;luma4x4BlkIdx++){
 				lumaList[0]=dcy[m][n];
@@ -498,17 +514,13 @@ public class Slice{
 				}	
 				// System.out.println();
 			}
-			for(int i=0;i<16;i++){
-					for(int j=0;j<16;j++){
-						// System.out.print(u[i][j]+" ");
-					}	
-					// System.out.println();
-			}
+			
 			x0=0;
 			y0=0;
 			nE=16;
 			for(int i=0;i<nE;i++){
 				for(int j=0;j<nE;j++){
+					System.out.print(" "+u[i][j]);
 					if(MbaffFrameFlag){
 						SL[xp+x0+j][yp+2*(y0+i)]=u[i][j];
 					}else if(!MbaffFrameFlag){
@@ -521,20 +533,37 @@ public class Slice{
 				// System.out.println();
 			}
 
-			for(int i=0;i<nE;i++){
-				for(int j=0;j<nE;j++){
-					System.out.print(SL[i][j]+" ");
-				}
-				System.out.println();
-			}
+			// for(int i=0;i<nE;i++){
+			// 	for(int j=0;j<nE;j++){
+			// 		System.out.print(SL[i][j]+" ");
+			// 	}
+			// 	System.out.println();
+			// }
 			
 
 
 
 		}
-
-
 		
+
+		MacroBlock mbData = new MacroBlock();
+		// mbData.SL_=SL;
+		mbData.mb_type_=mb_type;
+		mbData.TotalCoeff_=p.TotalCoeff;
+		// for(int i=0;i<16;i++){
+		// 			for(int j=0;j<16;j++){
+		// 				System.out.print(mbData.SL_[i][j]+" ");
+		// 			}
+		// 			System.out.println();
+		// 	}
+		MacroBlockData.add(CurrMbAddr,mbData);
+
+		// for(int i=0;i<16;i++){
+		// 			for(int j=0;j<16;j++){
+		// 				System.out.print(MacroBlockData.get(CurrMbAddr).SL_[i][j]+" ");
+		// 			}
+		// 			System.out.println();
+		// 	}
 	}
 	// 8.5.10
 	public int[][] transformation_process_for_DC(int [][]c){
@@ -881,7 +910,7 @@ public class Slice{
 			// System.out.println("here   mb address");
 			// nextMbAddress = i;
 		}
-		System.out.println("nextMbAddress "+i);
+		// System.out.println("nextMbAddress "+i);
 		return i;
 	}
 
@@ -911,6 +940,7 @@ public class Slice{
 					}
 					if(mb_skip_run > 0) {
 						moreDataFlag = p.more_rbsp_data();
+						System.out.println("skip mb in stream");
 					}
 				} else {
 					//CABAC
@@ -927,7 +957,9 @@ public class Slice{
 					mb_field_decoding_flag = p.getBit(); //
 				}
 				macroblock_layer();  
-				break;
+				// break;
+				Scanner scan= new Scanner(System.in);
+				int x=scan.nextInt();
 			}
 			if(! pps0.entropy_coding_mode_flag) {
 				moreDataFlag = p.more_rbsp_data();
@@ -977,62 +1009,179 @@ public class Slice{
 		String ret =p.Mb_Type("table7.11.txt",mbType,3);
 		return ret;
 	}
+
+	public void Derivation_process_for_neighbouring_macroblock_addresses_and_their_availability(){
+		mbAddrA=CurrMbAddr-1;
+		if(CurrMbAddr%PicWidthInMbs==0){
+			mbAddrA=CurrMbAddr;
+			availableFlagA=false;
+		}else if(mbAddrA < 0||mbAddrA>CurrMbAddr){
+			mbAddrA=CurrMbAddr;
+			availableFlagA=false;
+		}
+
+		mbAddrB=CurrMbAddr- PicWidthInMbs;
+		if(mbAddrB<0||mbAddrB>CurrMbAddr){
+			mbAddrB=CurrMbAddr;
+			availableFlagB=false;
+		}
+		mbAddrC=CurrMbAddr - PicWidthInMbs+1;
+		if((CurrMbAddr+1) %PicWidthInMbs==0){
+			mbAddrC=CurrMbAddr;
+			availableFlagC=false;
+		}else if(mbAddrC<0||mbAddrC>CurrMbAddr){
+			mbAddrC=CurrMbAddr;
+			availableFlagC=false;
+		}
+		mbAddrD=CurrMbAddr-PicWidthInMbs-1;
+		if(CurrMbAddr%PicWidthInMbs==0){
+			mbAddrD=CurrMbAddr;
+			availableFlagD=false;
+		}else if(mbAddrD<0||mbAddrD>CurrMbAddr){
+			mbAddrD=CurrMbAddr;
+			availableFlagD=false;
+		}
+		blkA=mbAddrA/luma4x4BlkIdxA;
+		blkB=mbAddrB/luma4x4BlkIdxB;
+	}
+
+	// 9.2.1
+	public void Derivation_process_for_neighbouring_4x4_luma_blocks(){
+		maxW= 16;
+		maxH =16;
+		Derivation_process_for_neighbouring_locations(xA,yA);
+		luma4x4BlkIdxA=8*(yW/8)+4*(xW/8)+2*((yW%8)/4)+((xW %8)/4);
+		Derivation_process_for_neighbouring_locations(xB,yB);
+		luma4x4BlkIdxB=8*(yW/8)+4*(xW/8)+2*((yW%8)/4)+((xW %8)/4);
+	}
 	public void setnC(){
-		mbAddrA=CurrMbAddr;// or to the left;
-		luma4x4BlkIdxA=luma4x4BlkIdx; // or to the left of it;
+		availableFlagA=true;
+		availableFlagB=true;
+		availableFlagC=true;
+		availableFlagD=true;
+
+		//clause 6.4.11.4
+		//	 	clause 6.4.3
+		// 		clause 6.4.12
 
 
-		mbAddrB=CurrMbAddr;// or above the curr;
-		luma4x4BlkIdxB=luma4x4BlkIdx; // or above the 4x4
-		//for mb ==0
-		p.nC=0;
+		// clause 6.4.11.4 for intra dc ac or luma 4x4
+		// input luma4x4BlkIdx
+		// output mbaddrA,mbAddrB,luma4x4BlkIdxA,luma4x4BlkIdxB
+		// 6.4.11.4
+
+		// for a xd =-1 yd=0
+		//for b xd=0 yd=-1
+		// int x,y;
+		// clause 6.4.3
+		// input luma4x4BlkIdx output x,y
+		// cluase 6.4.3
+
+		int x=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,0)+
+		InverseRasterScan(luma4x4BlkIdx%4,4,4,8,0);
+		int y=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,1)+
+		InverseRasterScan(luma4x4BlkIdx%4,4,4,8,1);
+		// int xA,yA,xB,yB;
+		xA=x-1;
+		yA=y+0;
+		xB=x+0;
+		yB=y-1;
+		// end clause 6.4.3
+
+		Derivation_process_for_neighbouring_4x4_luma_blocks();
+		Derivation_process_for_neighbouring_macroblock_addresses_and_their_availability();
+
 		
 
-		// x=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,0)+InverseRasterScan(luma4x4BlkIdx % 4,4,4,8,0);// (6-17)
-		// y=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,1)+InverseRasterScan(luma4x4BlkIdx % 4,4,4,8,1);//
-
-		// int xD=-1;
-		// int yD=-1;
-
-		// 3. The luma location ( xN, yN ) is specified by:
-		// int xN= x + xD;// (6-25)
-		// int yN= y + yD;// (6-26)
-		// 4. The derivation process for neighbouring locations as specified in clause 
-		// 6.4.12 is invoked for luma locations with ( xN, yN ) as the input and the 
-		// output is assigned to mbAddrN and ( xW, yW ).
-
-		// int xW,yW;
-		// 5. The variable luma4x4BlkIdxN is derived as follows:
-		// – If mbAddrN is not available, luma4x4BlkIdxN is marked as not available.
-		// – Otherwise (mbAddrN is available), the derivation process for 4x4 luma block indices as specified in clause 6.4.13.1 is invoked with the luma location ( xW, yW ) as the input and the output is assigned to luma4x4BlkIdxN.
-
-
+		// clause 6.4.12 input xn yn output is mbadd and xw,yw
 
 
 		
-		// – Otherwise, if the CAVLC parsing process is invoked for CbIntra16x16DCLevel, CbIntra16x16ACLevel, or CbLevel4x4, the process specified in clause 6.4.11.6 is invoked with cb4x4BlkIdx as the input, and the output is assigned to mbAddrA, mbAddrB, cb4x4BlkIdxA, and cb4x4BlkIdxB. The 4x4 Cb block specified by mbAddrA\cb4x4BlkIdxA is assigned to blkA, and the 4x4 Cb block specified by mbAddrB\cb4x4BlkIdxB is assigned to blkB.
-		// – Otherwise, if the CAVLC parsing process is invoked for CrIntra16x16DCLevel, CrIntra16x16ACLevel, or CrLevel4x4, the process specified in clause 6.4.11.6 is invoked with cr4x4BlkIdx as the input, and the output is assigned to mbAddrA, mbAddrB, cr4x4BlkIdxA, and cr4x4BlkIdxB. The 4x4 Cr block specified by mbAddrA\cr4x4BlkIdxA is assigned to blkA, and the 4x4 Cr block specified by mbAddrB\cr4x4BlkIdxB is assigned to blkB.
-		// – Otherwise (the CAVLC parsing process is invoked for ChromaACLevel), the process specified in clause 6.4.11.5 is invoked with chroma4x4BlkIdx as input, and the output is assigned to mbAddrA, mbAddrB, chroma4x4BlkIdxA, and chroma4x4BlkIdxB. The 4x4 chroma block specified by mbAddrA\iCbCr\chroma4x4BlkIdxA is assigned to blkA, and the 4x4 chroma block specified by mbAddrB\iCbCr\chroma4x4BlkIdxB is assigned to blkB.
-		// 5. The variable availableFlagN with N being replaced by A and B is derived as follows:
-		// – If any of the following conditions are true, availableFlagN is set equal to 0:
-		// – mbAddrN is not available,
-		// – the current macroblock is coded using an Intra macroblock prediction mode, constrained_intra_pred_flag is equal to 1, mbAddrN is coded using an Inter macroblock prediction mode, and slice data partitioning is in use (nal_unit_type is in the range of 2 to 4, inclusive).
-		// – Otherwise, availableFlagN is set equal to 1.
-		// 6. For N being replaced by A and B, when availableFlagN is equal to 1, the variable nN is derived as follows:
+		// 
+		// int luma4x4BlkIdxA,luma4x4BlkIdxB;
+		// if mbaddrN not available
+		// luma4x4BlkIdxA=0;
+		// luma4x4BlkIdxB=0;
+
+
+
+		// else
+
+		// clause 6.4.13.1 input xw,yw and output is luma4x4BlkIdxN
+
+		if(pps0.constrained_intra_pred_flag){
+			availableFlagA=false;
+			availableFlagB=false;
+			availableFlagC=false;
+			availableFlagD=false;
+		}
+
+		// 6
+		// 		6. For N being replaced by A and B, when availableFlagN is equal to 1, the variable nN is derived as follows:
 		// – If any of the following conditions are true, nN is set equal to 0:
 		// – The macroblock mbAddrN has mb_type equal to P_Skip or B_Skip,
-		// – The macroblock mbAddrN has mb_type not equal to I_PCM and all AC residual transform coefficient levels of the neighbouring block blkN are equal to 0 due to the corresponding bit of CodedBlockPatternLuma or CodedBlockPatternChroma being equal to 0.
+		// – The macroblock mbAddrN has mb_type not equal to I_PCM and all 
+				// AC residual transform coefficient levels of the neighbouring block blkN are equal to 0 due to the corresponding bit of CodedBlockPatternLuma or CodedBlockPatternChroma being equal to 0.
 		// – Otherwise, if mbAddrN is an I_PCM macroblock, nN is set equal to 16.
 		// – Otherwise, nN is set equal to the value TotalCoeff( coeff_token ) of the neighbouring block blkN.
-		// NOTE 1 – The values nA and nB that are derived using TotalCoeff( coeff_token ) do not include the DC transform coefficient levels in Intra_16x16 macroblocks or DC transform coefficient levels in chroma blocks, because these transform coefficient levels are decoded separately. When the block above or to the left belongs to an Intra_16x16 macroblock, nA or nB is the number of decoded non-zero AC transform coefficient levels for the adjacent 4x4 block in the Intra_16x16 macroblock. When the block above or to the left is a chroma block, nA or nB is the number of decoded non-zero AC transform coefficient levels for the adjacent chroma block.
-		// NOTE 2 – When parsing for Intra16x16DCLevel, CbIntra16x16DCLevel, or CrIntra16x16DCLevel, the values nA and nB are based on the number of non-zero transform coefficient levels in adjacent 4x4 blocks and not on the number of non-zero DC transform coefficient levels in adjacent 16x16 blocks.
-		// 7. The variable nC is derived as follows:
-		// – If availableFlagA is equal to 1 and availableFlagB is equal to 1, the variable nC is set equal to ( nA + nB + 1 ) >> 1.
-		// – Otherwise, if availableFlagA is equal to 1 (and availableFlagB is equal to 0), the variable nC is set equal to nA.
-		// – Otherwise, if availableFlagB is equal to 1 (and availableFlagA is equal to 0), the variable nC is set equal to nB.
-		// – Otherwise (availableFlagA is equal to 0 and availableFlagB is equal to 0), the variable nC is set equal to 0.
-		// When maxNumCoeff is equal to 15, it is a requirement of bitstream conformance that the value of TotalCoeff( coeff_token ) resulting from decoding coeff_token shall not be equal to 16.
-		// Table 9-5 – coeff_token mapping to TotalCoeff( coeff_token ) and TrailingOnes( coeff_token )
+		// if(availableFlagA){
+		// 	if(MacroBlockData.get(mbAddrA).mb_type_.equals("P_Skip")||MacroBlockData.get(mbAddrA).mb_type_.equals("B_Skip")){
+		// 		nA=0;
+		// 	}else if(MacroBlockData.get(mbAddrA).mb_type_.equals("I_PCM")){
+		// 		nA=16;
+		// 	}else{
+
+		// 		// nA=MacroBlockData.get(mbAddrA).TotalCoeff_-1;
+		// 		nA=0;
+		// 	}
+		// }
+		// if(availableFlagB){
+		// 	if(MacroBlockData.get(mbAddrB).mb_type_.equals("P_Skip")||MacroBlockData.get(mbAddrB).mb_type_.equals("B_Skip")){
+		// 		nB=0;
+		// 	}else if(MacroBlockData.get(mbAddrB).mb_type_.equals("I_PCM")){
+		// 		nB=16;
+		// 	}else{
+		// 		// nB=MacroBlockData.get(mbAddrB).TotalCoeff_;
+		// 		nB=0;
+		// 	}
+		// }
+		// if(availableFlagA&&availableFlagB){
+		// 	nC=(1+nA+nB)>>1;
+		// }else if(availableFlagA&&!availableFlagB){
+		// 	nC=nA;
+		// }else if(!availableFlagA&&availableFlagB){
+		// 	nC=nB;
+		// }else{
+		// 	nC=0;
+		// }
+		p.nC=0;
+		System.out.println("nC "+p.nC);
+
+
+	}
+	public void Derivation_process_for_neighbouring_locations(int xn ,int yn){
+
+			// Input to this process is a luma or chroma location ( xN, yN ) expressed relative to 
+			// the upper left corner of the current macroblock.
+			// Outputs of this process are:
+			// – mbAddrN: either equal to CurrMbAddr or to the address of 
+			// neighbouring macroblock that contains (xN, yN) and its availability status,
+			// – ( xW, yW ): the location (xN, yN) expressed relative to the upper-left 
+			// corner of the macroblock mbAddrN (rather than relative to the upper-left corner of the current macroblock).
+			// Let maxW and maxH be variables specifying maximum values of the location 
+			// components xN, xW, and yN, yW, respectively. maxW and maxH are derived as follows:
+			// – If this process is invoked for neighbouring luma locations,
+			// maxW = maxH = 16 (6-31)
+			// – Otherwise (this process is invoked for neighbouring chroma locations),
+			// maxW = MbWidthC (6-32)
+			// maxH = MbHeightC	
+		// Depending on the variable MbaffFrameFlag, the neighbouring locations are derived as follows:
+		// – If MbaffFrameFlag is equal to 0, the specification for neighbouring locations in fields and non-MBAFF frames as described in clause 6.4.12.1 is applied.
+		if(!MbaffFrameFlag){
+			xW =(xn+maxW)%maxW;
+			yW = (yn+maxH)%maxH;
+		}
+		// – Otherwise (MbaffFrameFlag is equal to 1), the specification for neighbouring locations in MBAFF frames as described in clause 6.4.12.2 is applied.
 
 	}
 	public void ChromaDCLevelnC(){
@@ -1118,7 +1267,7 @@ public class Slice{
 				}
 			}
 		}else if(ChromaArrayType==3){
-			// System.out.println("chroma component present");
+			System.out.println("\n chroma component present \n");
 
 			cb4x4BlkIdx=0;
 			// System.out.println("ChromaArrayType==3");
@@ -1139,21 +1288,25 @@ public class Slice{
 	public void residual_luma(int[] i16x16DClevel,int[][] i16x16AClevel
 		,int[][] level4x4,int[][] level8x8,int startIdx,int endIdx){
 		if(startIdx==0&&MbPartPredMode(mbRow,0).equals("Intra_16x16")){
-			// luma4x4BlkIdx=0;
+			luma4x4BlkIdx=0;
 			setnC();
-			System.out.println("i16x16DClevel");
+			// System.out.println("i16x16DClevel");
 			p.residual_block_cavlc(i16x16DClevel,0,15,16);
 		}
 
-		System.out.println("transform_size_8x8_flag "+transform_size_8x8_flag);
+		// System.out.println("transform_size_8x8_flag "+transform_size_8x8_flag);
 		for(int i8x8=0;i8x8<4;i8x8++){
 			if(!transform_size_8x8_flag||!pps0.entropy_coding_mode_flag){
 				for(int i4x4=0;i4x4<4;i4x4++){
+					if((CodedBlockPatternLuma & (1<<i8x8))>0){
+						System.out.println("impelmentation  CodedBlockPatternLuma & (1<<i8x8))>0");
+						System.out.println();
+					}
 					// System.out.println(CodedBlockPatternLuma+" "+"CodedBlockPatternLuma");
 					// if(CodedBlockPatternChroma==0){
 
 					// }
-					if((CodedBlockPatternLuma & (1<<i8x8))!=0){
+					if((CodedBlockPatternLuma & (1<<i8x8))>0){
 						if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 							// i16x16AClevel=
 							int [] ac=new int[16];
@@ -1225,7 +1378,7 @@ public class Slice{
 	}
 	public void mb_pred(int mb_type){
 		// ref_idx_l0
-		// System.out.println("call to mb_pred");
+		System.out.println("call to mb_pred "+MbPartPredMode(mb_type,0));
 		if(MbPartPredMode(mb_type,0).equals("Intra_4x4")||
 			MbPartPredMode(mb_type,0).equals("Intra_8x8")||
 			MbPartPredMode(mb_type,0).equals("Intra_16x16")){
@@ -1256,7 +1409,7 @@ public class Slice{
 				}
 			}
 			if(ChromaArrayType==1||ChromaArrayType==2){
-				// System.out.println("chroma tyoe 1 or 2");
+				System.out.println("chroma tyoe 1 or 2");
 				intra_chroma_pred_mode=p.uev();
 			}
 		}else if(!MbPartPredMode(mb_type,0).equals("Direct")){
@@ -1270,7 +1423,7 @@ public class Slice{
 
 			// ref_idx_l0
 			// System.out.println("akhri wali ");
-			System.out.println("end of func");
+			System.out.println("end of func un implemented ");
 			// for(int mbPartIdx=0;mbPartIdx<NumMbPart(mb_type)){
 
 			}
@@ -1393,9 +1546,9 @@ public class Slice{
 			if(CodedBlockPatternLuma>0||CodedBlockPatternChroma>0||
 				MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 				mb_qp_delta=p.sev();
-				System.out.println("call to "+mb_qp_delta);
+				System.out.println("mb_qp_delta"+mb_qp_delta);
 				residual(0,15);
-				Transform_coefficient_decoding();
+				// Transform_coefficient_decoding();
 			}
 		}
 	}
