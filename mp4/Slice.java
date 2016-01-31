@@ -915,6 +915,7 @@ public class Slice{
 	}
 
 	public void slice_data() {
+		int counter=0;
 		if(pps0.entropy_coding_mode_flag) {
 			while(! p.byte_aligned()) {
 				// System.out.println("entropy mode");
@@ -956,10 +957,17 @@ public class Slice{
 					 (CurrMbAddr % 2 == 1 && prevMbSkipped))) {
 					mb_field_decoding_flag = p.getBit(); //
 				}
+				System.out.println("mb extracted "+ counter++);
+				Scanner scan= new Scanner(System.in);
+				// if(!moreDataFlag){
+				// 	break;
+				// }
+				// int x=scan.nextInt();
+				System.out.println("moreDataFlag "+moreDataFlag);
 				macroblock_layer();  
 				// break;
-				Scanner scan= new Scanner(System.in);
-				int x=scan.nextInt();
+				// Scanner scan= new Scanner(System.in);
+				// int x=scan.nextInt();
 			}
 			if(! pps0.entropy_coding_mode_flag) {
 				moreDataFlag = p.more_rbsp_data();
@@ -1242,6 +1250,7 @@ public class Slice{
 				if(((CodedBlockPatternChroma & 3)!=0)&&startIdx==0){
 					int[] cdc=new int[NumC8x8*4];
 					ChromaDCLevelnC();
+					System.out.println("ChromaDCLevel called");
 					p.residual_block_cavlc(cdc,0,4*NumC8x8-1,4*NumC8x8);
 					System.out.println("cdc");
 					ChromaDCLevel[iCbCr]=cdc;

@@ -2,6 +2,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.String;
+import java.util.*;
+
 public class parser{
 		int pointer;
 		boolean trailing_ones_sign_flag;
@@ -10,18 +12,37 @@ public class parser{
 		int[] coeffLevel;
 		byte[] bytestream;
 		int TotalCoeff;
-		int startIdx, endIdx;
+		int startIdx, endIdx,zerosLeft,run_before;
 	parser(byte[] array){
 		bytestream=array;
 		pointer=0;
+	}
+	public void rbsp_trailing_bits(){
+		int rbsp_alignment_zero_bit;
+		int rbsp_stop_one_bit = readBits(1); /* equal to 1 */
+		while(!byte_aligned()){
+			rbsp_alignment_zero_bit=readBits(1); /* equal to 0 */
+		}
 	}
 	public boolean byte_aligned(){
 		// System.out.println("bohat hi lame zindagi hai" + pointer % 8);
 		return (pointer % 8 == 0 ? true : false);
 	}
 	public boolean more_rbsp_data(){
-		// System.out.println(pointer/8+" "+bytestream.length);
+		int pointer_temp=pointer;
+		pointer=pointer-1;
+		while(true){
+			if(getBit()){
+				pointer=pointer-1;
+				break;
+			}else{
+				pointer=pointer-2;
+			}
+		}
+		rbsp_trailing_bits();
 		if((pointer) < bytestream.length*8) {
+			pointer=pointer_temp;
+
 			return true;
 		} else {
 			return false;
@@ -172,6 +193,7 @@ public class parser{
 		//table 9.9a 4x3
 		//table 9.9b 8x8
 		//table 9.10 15x8
+		System.out.println("table "+ filename);
 		int row=0;
 		int col=0;
 		if(filename.equals("table9.7.txt")){
@@ -180,10 +202,10 @@ public class parser{
 		}else if(filename.equals("table9.8.txt")){
 			row=9;
 			col=9;
-		}else if(filename.equals("table9.9.a.txt")){
+		}else if(filename.equals("table9.9a.txt")){
 			row=4;
-			col=3;
-		}else if(filename.equals("table9.9.b.txt")){
+			col=4;
+		}else if(filename.equals("table9.9b.txt")){
 			row=8;
 			col=8;
 		}else if(filename.equals("table9.10.txt")){
@@ -196,11 +218,15 @@ public class parser{
 		String match="";
 		int[] numofcof_t1s= new int[3];
 		int matchedat=0;
+		int maxCodeLength=0;
 		while (true){
+			// System.out.println("string matching "+ match);
+			
 			match=match+readBits(1);
 			for(int k=0;k<row;k++){
+				System.out.println(lookupTable[k][lookupcolom]+" matching to ");
 				if(lookupTable[k][lookupcolom].equals(match)){
-					// System.out.println(match);
+					
 					matchedat=k;
 					return Integer.parseInt(lookupTable[k][0]);
 
@@ -222,6 +248,7 @@ public class parser{
 		String lookupTable[][]=loadTable(tablename,row,col);
 		return lookupTable[lookUpRow+1][lookUpCol];
 	}
+
 	public int[] cavlcTableLookUp(String filename,int row,int col){
 		String lookupTable[][]=loadTable(filename,row,col);
 		
@@ -281,17 +308,146 @@ public class parser{
 		
 	}
 	public void residual_block_cavlc(int[] coeffLevel_,int startIdx_,int endIdx_,int maxNumCoeff_){
+		System.out.println("Pointer at ************** "+ pointer);
 		maxNumCoeff=maxNumCoeff_;
 		coeffLevel=coeffLevel_;
 		startIdx=startIdx_;
 		endIdx=endIdx_;
-		coeffLevel_=cavlc_decoder();
+		int[] levelVal = new int[maxNumCoeff];
+		
+		// step 1
+		for (int i=0;i<maxNumCoeff ;i++ ) {
+			levelVal[i]=0;
+			coeffLevel[i]=0;
+		}
+		// int TrailingOnes;
+		int index=0;
+		int suffixLength=0;
+		// int remainingCoeff=TotalCoeff - TrailingOnes;
+		int level_prefix=0;
+		int levelSuffixSize=0;
+		int level_suffix=0;
+		int levelCode=0;
+
+		
+		for(int i =0;i<maxNumCoeff;i++){
+			coeffLevel[i]=0;
+		}
+		int[] ret=cavlcTableLookUp("table9.5.txt",62,8);
+		// System.out.println("ones and zeros "+ret[0]+" "+ret[1]);
+		TotalCoeff=ret[1];
+		int TrailingOnes=ret[0];
+		int[] runVal=new int [TotalCoeff];
+		nC=ret[2];
+		if(TotalCoeff>0){
+			if(TotalCoeff>10&&TrailingOnes<3){
+				suffixLength=1;
+			}else{
+				suffixLength=0;
+			}
+			for(int i =0;i<TotalCoeff;i++){
+				if(i<TrailingOnes){
+					trailing_ones_sign_flag=getBit();
+					levelVal[i]=1-2*((trailing_ones_sign_flag) ? 1:0);
+				}else{
+					int leadingZeroBits=0;
+					while(readBits(1)==0){
+						leadingZeroBits+=1; 
+					}
+					level_prefix = leadingZeroBits;
+					levelCode=((Math.min(15,level_prefix)) << suffixLength);
+					if(suffixLength>0||level_prefix>=14){
+						if(level_prefix==14&& suffixLength==0){
+							levelSuffixSize=4;
+						}
+						else if(level_prefix>=15){
+							levelSuffixSize=level_prefix-3;
+						}else{
+							levelSuffixSize=suffixLength;				
+						}
+						if(levelSuffixSize>0){
+							level_suffix=readBits(levelSuffixSize);
+						}else if(levelSuffixSize==0){
+							level_suffix=0;
+						}
+						levelCode=levelCode+level_suffix;
+					}
+					if(level_prefix>=15&& suffixLength==0){
+						levelCode+=15;
+					}
+					if(level_prefix>=16){
+						levelCode+=(1<<(level_prefix-3))-4096;
+					}
+					if(i==TrailingOnes&&TrailingOnes<3){
+						levelCode+=2;
+					}
+
+					if(levelCode%2==0){
+						// System.out.println(i+"error at "+levelVal[i]);
+						levelVal[i]=(levelCode+2)>>1;
+					} else{
+						levelVal[i]=(-1*levelCode-1)>>1;
+					}
+					if(suffixLength==0){
+						suffixLength=1;
+					}
+					if(Math.abs(levelVal[i])>(3<<(suffixLength-1))&&suffixLength<6){
+						suffixLength=suffixLength+1;
+					}
+				}
+			}
+			if(TotalCoeff<(endIdx- startIdx+1)){
+				// total_zeros;
+				int tzVlcIndex=TotalCoeff;
+				index =0;
+				int total_zeros=0;
+				// int[] runVal=new int [TotalCoeff];
+				if(maxNumCoeff==4){
+					total_zeros=vlcTableLookUp("table9.9a.txt",tzVlcIndex);
+				}else if(maxNumCoeff==8){
+					total_zeros=vlcTableLookUp("table9.9b.txt",tzVlcIndex);
+				}else{
+					if(tzVlcIndex<8){
+						total_zeros=vlcTableLookUp("table9.7.txt",tzVlcIndex);
+					}else if(tzVlcIndex>=8){
+						total_zeros=vlcTableLookUp("table9.8.txt",tzVlcIndex-7);
+					}
+				}
+				zerosLeft=total_zeros;
+			}else{
+				zerosLeft=0;
+			}
+			for(int i=0;i<TotalCoeff-1;i++){
+				if(zerosLeft>0){
+					if(zerosLeft>6){
+						zerosLeft=7;
+					}
+					run_before=vlcTableLookUp("table9.10.txt",zerosLeft);
+					runVal[i]=run_before;
+				}else{
+					runVal[i]=0;
+				}
+				zerosLeft=zerosLeft- runVal[i];
+			}
+			runVal[TotalCoeff-1]=zerosLeft;
+			int coeffNum=-1;
+			for(int i=TotalCoeff-1;i>=0;i--){
+				coeffNum+=runVal[i]+1;
+				coeffLevel[startIdx+coeffNum]=levelVal[i];
+			}
+
+		// coeffLevel_=cavlc_decoder();
+		
+	}
 		for (int i=0;i<maxNumCoeff ;i++ ) {
 			System.out.print(coeffLevel[i]+" ");
 			
 		}
 		System.out.println();
-	}
+		System.out.println("Pointer at ************** "+ pointer);
+
+}
+
 	public int[] cavlc_decoder(){
 		System.out.println("pointer is at "+pointer);
 		int[] levelVal = new int[maxNumCoeff];
@@ -321,6 +477,14 @@ public class parser{
 			suffixLength=1;
 		}else{
 			suffixLength=0;
+		}
+		for(int i =0;i<TotalCoeff;i++){
+			if(i<TrailingOnes){
+				trailing_ones_sign_flag=getBit();
+				levelVal[i]=1-2*((trailing_ones_sign_flag) ? 1:0);
+			} else{
+
+			}
 		}
 		int remainingCoeff=TotalCoeff - TrailingOnes;
 		int level_prefix=0;
