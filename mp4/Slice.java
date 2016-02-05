@@ -6,7 +6,7 @@ import java.util.*;
 public class Slice{
 	ArrayList <MacroBlock> MacroBlockData= new ArrayList<MacroBlock>();
 	// ;
-	int [][] SL=new int [16][16];
+	
 	sps sps0;
 	pps pps0;
 	nal nal0;
@@ -91,7 +91,9 @@ public class Slice{
 	int blkA;
 	int blkB;
 	int CodedBlockPatternLuma,CodedBlockPatternChroma;
-	int mbAddrA,mbAddrB,luma4x4BlkIdxB,luma4x4BlkIdxA,mbAddrC,mbAddrD,maxW,maxH,xW,yW,xA,yA,xB,yB,nA,nB,nC;
+	int mbAddrA,mbAddrB,luma4x4BlkIdxB,luma4x4BlkIdxA,mbAddrC,mbAddrD,xW,yW,xA,yA,xB,yB,nA,nB,nC;
+	int maxW=16;
+	int maxH=16;
 	boolean availableFlagA,availableFlagB,availableFlagC,availableFlagD;
 	int[] Intra16x16DCLevel;
 	int[][] Intra16x16ACLevel;
@@ -114,19 +116,23 @@ public class Slice{
 	int[][] CrIntra16x16ACLevel;
 	int[][] CrLevel4x4;
 	int[][] CrLevel8x8;
-
+	// int PicHeightInMbs;
 	int BitDepthY;
 	int BitDepthC;
 	int ChromaArrayType;
 	boolean sMbFlag;
 	int BitDepth;
+	int [][] SL;
 	int qp;
 	int QPY=0;
 	int QpBdOffsetY;
 	boolean TransformBypassModeFlag;
 	boolean mbIsInterFlag;
 	int PicWidthInSamplesL;
+	int PicHeightInSamplesL;
 	int PicWidthInMbs;
+	int PicHeightInMbs;
+	int FrameHeightInMbs;
 	int [][] predL;
 	Slice(byte[] rbsp,sps sps_,pps pps_,nal nal_0){
 		// System.out.println("slice header");
@@ -147,8 +153,14 @@ public class Slice{
 		}
 		BitDepthY=8+sps0.bit_depth_luma_minus8;
 		PicWidthInMbs=sps0.pic_width_in_mbs_minus_1+1;
+		FrameHeightInMbs = (2-(sps0.frame_mbs_only_flag ? 1:0))*(sps0.pic_height_in_map_units_minus_1+1);
 		// System.out.println("pic_width_in_mbs_minus_1 "+PicWidthInMbs);
+		PicHeightInMbs = FrameHeightInMbs / (1+(field_pic_flag ? 1:0));
 		PicWidthInSamplesL=PicWidthInMbs*16;
+		PicHeightInSamplesL=PicHeightInMbs*16;
+		System.out.println("pic height "+PicHeightInSamplesL);
+		SL=new int [PicWidthInSamplesL][PicHeightInSamplesL];
+		// System.out.println("PicWidthInSamplesL "+PicWidthInMbs);
 		slice_layer_without_partitioning_rbsp();
 
 		
@@ -162,7 +174,12 @@ public class Slice{
 		// rbsp_slice_trailing_bits(); // 
 	}
 
+	public void Intra_16x16_prediction_process_for_luma_samples(){
 
+
+
+
+	}
 	public int LevelScale4x4(int m,int i,int j){
 		int[] scalingList ={6,13,13,20,20,20,28,28,28,28,32,32,32,37,37,42};
 
@@ -362,15 +379,7 @@ public class Slice{
 	}
 	public void Transform_coefficient_decoding(){
 		// predL[ x, y ] = ( 1 << ( BitDepthY − 1 ) ), with x, y = 0..15
-		predL=new int[16][16];
-		System.out.println("BitDepth "+BitDepthY);
-
-		for(int i=0;i<16;i++){
-			for(int j=0;j<16;j++){
-				predL[i][j]=(1<<(BitDepthY-1));
-				// System.out.print(predL[i][j] +" ");
-			}
-		}
+		// Derivation process for neighbouring locations
 
 		
 		int nE,x0,y0;
@@ -839,8 +848,8 @@ public class Slice{
 		// PicHeightInMapUnits = pic_height_in_map_units_minus1 + 1 (7-16)
 		// PicSizeInMapUnits = PicWidthInMbs * PicHeightInMapUnits
 		int PicSizeInMapUnits= (sps0.pic_width_in_mbs_minus_1+1)*(sps0.pic_height_in_map_units_minus_1+1);
-		int FrameHeightInMbs = (2-(sps0.frame_mbs_only_flag ? 1:0))*(sps0.pic_height_in_map_units_minus_1+1);
- 		int PicHeightInMbs = FrameHeightInMbs / (1+(field_pic_flag ? 1:0));
+		// int FrameHeightInMbs = (2-(sps0.frame_mbs_only_flag ? 1:0))*(sps0.pic_height_in_map_units_minus_1+1);
+ 		// int PicHeightInMbs = FrameHeightInMbs / (1+(field_pic_flag ? 1:0));
 
  		int PicSizeInMbs = (sps0.pic_width_in_mbs_minus_1+1) * (PicHeightInMbs);
 		// (7-34)
@@ -1557,7 +1566,7 @@ public class Slice{
 				mb_qp_delta=p.sev();
 				System.out.println("mb_qp_delta"+mb_qp_delta);
 				residual(0,15);
-				// Transform_coefficient_decoding();
+				Transform_coefficient_decoding();
 			}
 		}
 	}
