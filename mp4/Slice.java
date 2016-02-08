@@ -1,6 +1,7 @@
 // 
 // 7.3.3 Slice header syntax
 import java.util.*;
+import java.lang.String;
 
 
 public class Slice{
@@ -160,6 +161,7 @@ public class Slice{
 		PicHeightInSamplesL=PicHeightInMbs*16;
 		System.out.println("pic height "+PicHeightInSamplesL);
 		SL=new int [PicWidthInSamplesL][PicHeightInSamplesL];
+		predL=new int[16][16];
 		// System.out.println("PicWidthInSamplesL "+PicWidthInMbs);
 		slice_layer_without_partitioning_rbsp();
 
@@ -175,8 +177,123 @@ public class Slice{
 	}
 
 	public void Intra_16x16_prediction_process_for_luma_samples(){
+		int x,y;
+		// x=-1;y=-1...15; mbaddrA
+		// x=0..15,y=-1; mbaddrB
+		int[] p_minus_x=new int[17];
+		boolean availableflagp_minus_x=false;
+		boolean availableflagp_minus_y=false;
+		int[] p_minus_y=new int[16];
+		String Intra16x16PredMode=p.Mb_Type("table7.11.txt",mbRow,4);
+		System.out.println(Intra16x16PredMode+" mode == "+pps0.constrained_intra_pred_flag);
+		
+		for(y=-1;y<16;y++){
+			x=-1;
+			Derivation_process_for_neighbouring_locations(x,y);
+			if(availableFlagA){
+				availableflagp_minus_x=true;
+			}else{
+				availableflagp_minus_x=false;
+				break;
+			}
+			if(pps0.constrained_intra_pred_flag){
+				availableflagp_minus_x=false;
+				break;
+			}else{
+				availableflagp_minus_x=true;
+			}
+			int xm,ym;
+			int[] xmym=inverse_macroblock_scanning_process(mbAddrA);
+			xm=xmym[0];
+			ym=xmym[1];
+			if(MbaffFrameFlag){
+				p_minus_x[y+1]=SL[xm+xW][ym+2*yW];
+			}else{
+				// System.out.println("xm+xW][ym+yW"+ xW+" == "+yW);
+				p_minus_x[y+1]=SL[xm+xW][ym+yW];
+			}
+		}
+		for(x=0;x<16;x++){
+			y=-1;
+			Derivation_process_for_neighbouring_locations(x,y);
+			if(availableFlagB){
+				availableflagp_minus_y=true;
+			}else{
+				availableflagp_minus_y=false;
+				break;
+			}
+			if(pps0.constrained_intra_pred_flag){
+				availableflagp_minus_y=false;
+				break;
+			}else{
+				availableflagp_minus_y=true;
+			}
+			int xm,ym;
+			int[] xmym=inverse_macroblock_scanning_process(mbAddrB);
+			xm=xmym[0];
+			ym=xmym[1];
+			if(MbaffFrameFlag){
+				p_minus_y[x]=SL[xm+xW][ym+2*yW];
+			}else{
+				p_minus_y[x]=SL[xm+xW][ym+yW];
+			}
+		}
 
 
+		if(Intra16x16PredMode.equals("2")){
+			// 8.3.3.3
+			if(availableflagp_minus_x==true && availableflagp_minus_y==true){
+				System.out.println("true true");
+			}else if (availableflagp_minus_x==true && availableflagp_minus_y==false){
+				// System.out.println("true false");
+				for(x=0;x<16;x++){
+					for(y=0;y<16;y++){
+						int sum=0;
+						for(int y_=0;y_<16;y_++){
+							sum=sum+p_minus_x[y_+1]+8;
+							// System.out.print(p_minus_x[y+1]+" p[][]");
+						}
+						predL[x][y]=sum>>4;
+					}
+				}
+			}else if (availableflagp_minus_x==false && availableflagp_minus_y==true){
+				System.out.println("false true");
+			}else{
+				System.out.println("false false");
+				// predL[ x, y ] = ( 1 << ( BitDepthY − 1 ) ), with x, y = 0..15
+				for(x=0;x<16;x++){
+					for(y=0;y<16;y++){
+						predL[x][y]=(1<<(BitDepthY-1));
+					}
+				}
+			}
+
+		}
+		if(Intra16x16PredMode.equals("0")){
+			// 8.3.3.1
+			if(availableflagp_minus_y){
+				for(x=0;x<16;x++){
+					for(y=0;y<16;y++){
+						predL[x][y]=p_minus_y[x];
+					}
+				}
+			}
+		}
+		if(Intra16x16PredMode.equals("1")){
+			// 8.3.3.2
+			if(availableflagp_minus_x){
+				for(x=0;x<16;x++){
+					for(y=0;y<16;y++){
+						predL[x][y]=p_minus_x[y+1];
+					}
+				}
+			}
+		}
+		if(Intra16x16PredMode.equals("3")){
+			
+		}
+		
+		
 
 
 	}
@@ -377,11 +494,29 @@ public class Slice{
         }
         return c;
 	}
+	public int[] inverse_macroblock_scanning_process(int mbAddrN){
+		int xp=0,yp=0,x0=0,y0=0;
+		if(MbaffFrameFlag==false){
+					// System.out.println("flag is false");
+			xp=InverseRasterScan(mbAddrN,16,16,PicWidthInSamplesL,0);
+			yp=InverseRasterScan(mbAddrN,16,16,PicWidthInSamplesL,1);
+		}else if (MbaffFrameFlag==true){
+			x0=InverseRasterScan(mbAddrN/2,16,32,PicWidthInSamplesL,0);
+			y0=InverseRasterScan(mbAddrN/2,16,32,PicWidthInSamplesL,1);
+			xp=x0;
+			yp=y0+(mbAddrN%2)*16;
+		}
+		int []ret=new int[2];
+		ret[0]=xp;
+		ret[1]=yp;
+		return ret;
+	}
 	public void Transform_coefficient_decoding(){
 		// predL[ x, y ] = ( 1 << ( BitDepthY − 1 ) ), with x, y = 0..15
 		// Derivation process for neighbouring locations
 
-		
+		//if()
+		Intra_16x16_prediction_process_for_luma_samples();
 		int nE,x0,y0;
 		int xp=0;
 		int yp=0;
@@ -976,7 +1111,7 @@ public class Slice{
 				macroblock_layer();  
 				// break;
 				// Scanner scan= new Scanner(System.in);
-				// int x=scan.nextInt();
+				int x=scan.nextInt();
 			}
 			if(! pps0.entropy_coding_mode_flag) {
 				moreDataFlag = p.more_rbsp_data();
@@ -1058,8 +1193,8 @@ public class Slice{
 			mbAddrD=CurrMbAddr;
 			availableFlagD=false;
 		}
-		blkA=mbAddrA/luma4x4BlkIdxA;
-		blkB=mbAddrB/luma4x4BlkIdxB;
+		// blkA=mbAddrA/luma4x4BlkIdxA;
+		// blkB=mbAddrB/luma4x4BlkIdxB;
 	}
 
 	// 9.2.1
@@ -1195,8 +1330,10 @@ public class Slice{
 		// Depending on the variable MbaffFrameFlag, the neighbouring locations are derived as follows:
 		// – If MbaffFrameFlag is equal to 0, the specification for neighbouring locations in fields and non-MBAFF frames as described in clause 6.4.12.1 is applied.
 		if(!MbaffFrameFlag){
+			Derivation_process_for_neighbouring_macroblock_addresses_and_their_availability();
 			xW =(xn+maxW)%maxW;
 			yW = (yn+maxH)%maxH;
+			// System.out.println(xn+"= "+yn+" ="+maxW+" "+maxH);
 		}
 		// – Otherwise (MbaffFrameFlag is equal to 1), the specification for neighbouring locations in MBAFF frames as described in clause 6.4.12.2 is applied.
 
