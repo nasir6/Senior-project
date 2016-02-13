@@ -100,11 +100,17 @@ public class pps{
 		
 		boolean more_data=p1.more_rbsp_data();// check in rbsp for remainig bits
 		transform_8x8_mode_flag=false;
+		// System.out.println();
+		// System.out.println("more data ");
+		// System.out.println();
 		if(more_data){
+
 			transform_8x8_mode_flag=p1.getBit();
 			pic_scaling_matrix_present_flag=p1.getBit();
 			if (pic_scaling_matrix_present_flag) {
-				
+				System.out.println();
+				System.out.println("Picture pic_scaling_matrix_present_flag flag is present do it ");
+				System.out.println();
 			}
 		}
 

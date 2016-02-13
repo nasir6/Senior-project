@@ -193,7 +193,7 @@ public class parser{
 		//table 9.9a 4x3
 		//table 9.9b 8x8
 		//table 9.10 15x8
-		System.out.println("table "+ filename);
+		// System.out.println("table "+ filename);
 		int row=0;
 		int col=0;
 		if(filename.equals("table9.7.txt")){
@@ -224,7 +224,7 @@ public class parser{
 			
 			match=match+readBits(1);
 			for(int k=0;k<row;k++){
-				System.out.println(lookupTable[k][lookupcolom]+" matching to ");
+				// System.out.println(lookupTable[k][lookupcolom]+" matching to ");
 				if(lookupTable[k][lookupcolom].equals(match)){
 					
 					matchedat=k;
@@ -294,7 +294,7 @@ public class parser{
 			for(int k=0;k<62;k++){
 				if(lookupTable[k][lookupcolom].equals(match)){
 
-					System.out.println("match string "+match);
+					// System.out.println("match string "+match);
 					matchedat=k;
 					numofcof_t1s[0]=Integer.parseInt(lookupTable[k][0]);
 					numofcof_t1s[1]=Integer.parseInt(lookupTable[k][1]);
@@ -308,7 +308,7 @@ public class parser{
 		
 	}
 	public void residual_block_cavlc(int[] coeffLevel_,int startIdx_,int endIdx_,int maxNumCoeff_){
-		System.out.println("Pointer at ************** "+ pointer);
+		// System.out.println("Pointer at ************** "+ pointer);
 		maxNumCoeff=maxNumCoeff_;
 		coeffLevel=coeffLevel_;
 		startIdx=startIdx_;
@@ -440,16 +440,16 @@ public class parser{
 		
 	}
 		for (int i=0;i<maxNumCoeff ;i++ ) {
-			System.out.print(coeffLevel[i]+" ");
+			// System.out.print(coeffLevel[i]+" ");
 			
 		}
-		System.out.println();
-		System.out.println("Pointer at ************** "+ pointer);
+		// System.out.println();
+		// System.out.println("Pointer at ************** "+ pointer);
 
 }
 
 	public int[] cavlc_decoder(){
-		System.out.println("pointer is at "+pointer);
+		// System.out.println("pointer is at "+pointer);
 		int[] levelVal = new int[maxNumCoeff];
 		// step 1
 		for (int i=0;i<maxNumCoeff ;i++ ) {
@@ -656,7 +656,7 @@ public class parser{
 			index=index-1;
 			
 		}
-		System.out.println("pointer is at "+pointer);
+		// System.out.println("pointer is at "+pointer);
 		// coeffLevel_=coeffLevel;
 		return coeffLevel;
 	}

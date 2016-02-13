@@ -92,6 +92,7 @@ public class sps{
 			seq_scaling_matrix_present_flag=p1.getBit();
 			// System.out.println("seq_scaling_matrix_present_flag "+seq_scaling_matrix_present_flag);
 			if(seq_scaling_matrix_present_flag){
+				System.out.println("seq_scaling_matrix_present_flag is true");
 				int size = 0;
 				if(chroma_format_idc!=3){
 					size=8;
