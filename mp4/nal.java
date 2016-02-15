@@ -12,7 +12,9 @@ public class nal
 {
 	int NAL_Unit_length_size=4;
 	int length;
-	int nalOffSet = 20083;//+489; /// 
+	// int nalOffSet = 20083;//+489; /// 
+	
+	int nalOffSet = 48;//+489; /// 
 	String fileName = "mp4.mp4";
 	int forbidden_zero_bit; //f1
 	int nal_ref_idc; //u2
@@ -111,7 +113,7 @@ public class nal
 		// nal test = new nal();
 		nal test = new nal();
 		
-		test.parseNalUnit();
+		// test.parseNalUnit();
 		test.parseNalUnit();
 		// if(test.nal_unit_type==5){
 

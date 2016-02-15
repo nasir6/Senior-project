@@ -108,12 +108,13 @@ public class parser{
 	}
 	public int sev(){
 		int k=ExpGolombDecode();
-		int value=(int)Math.pow(-1,k+1) * (int)Math.ceil(k/2);
+		// System.out.println("k== "+ k);
+		int value=(int)Math.pow(-1,k+1) * (int)Math.ceil(k/2.0);
 		// System.out.println( value + " ***********k********** "+k);
 
 		return value;
 	}
-	public int mev(int mode){
+	public int mev(int mode,int ChromaArrayType_){
 		int[] tableIntra={47,31,15,0,23,27,29,30,7,11,13,14,39,43,
 			45,46,16,3,5,10,12,19,21,26,28,35,37,42,44,1,2,4,8,17,18,
 			20,24,6,9,22,25,32,33,34,36,40,38,41};
@@ -123,7 +124,10 @@ public class parser{
 			29,30,22,25,38,41};	
 			int k=ExpGolombDecode();
 			// System.out.println(k+"  kkkkkkkkkkkkkk");
-			return (mode == 0 ? tableInter[k] : tableIntra[k]);	
+			if(ChromaArrayType_==1||ChromaArrayType_==2){
+				return (mode == 0 ? tableInter[k] : tableIntra[k]);	
+			}
+			return 0;
 	}
 	//ce(v)
 	// Inputs to this process are bits from slice data, a maximum number of non-zero transform coefficient 
@@ -396,7 +400,7 @@ public class parser{
 					}
 				}
 			}
-			if(TotalCoeff<(endIdx- startIdx+1)){
+			if(TotalCoeff<((endIdx- startIdx) +1)){
 				// total_zeros;
 				int tzVlcIndex=TotalCoeff;
 				index =0;
@@ -439,10 +443,12 @@ public class parser{
 		// coeffLevel_=cavlc_decoder();
 		
 	}
+	System.out.println();
 		for (int i=0;i<maxNumCoeff ;i++ ) {
-			// System.out.print(coeffLevel[i]+" ");
+			System.out.print(coeffLevel[i]+" ");
 			
 		}
+		// System.out.println("nC is equal  "+nC);
 		// System.out.println();
 		// System.out.println("Pointer at ************** "+ pointer);
 
