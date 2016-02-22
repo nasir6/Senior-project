@@ -147,7 +147,6 @@ public class Slice{
 	int FrameHeightInMbs;
 	int [][] predL;
 	Slice(byte[] rbsp,sps sps_,pps pps_,nal nal_0){
-		// System.out.println("slice header");
 		sps0=sps_;
 		pps0=pps_;
 		nal0=nal_0;
@@ -157,39 +156,25 @@ public class Slice{
 		}else{
 			MbaffFrameFlag=false;
 		}
-		// System.out.println(" MbaffFrameFlag "+MbaffFrameFlag);
 		if(sps0.separate_colour_plane_flag==false){
 			ChromaArrayType=sps0.chroma_format_idc;
 		}else{
 			ChromaArrayType=0;
 		}
-		System.out.println(ChromaArrayType+" array type ");
 		BitDepthY=8+sps0.bit_depth_luma_minus8;
 		PicWidthInMbs=sps0.pic_width_in_mbs_minus_1+1;
 		FrameHeightInMbs = (2-(sps0.frame_mbs_only_flag ? 1:0))*(sps0.pic_height_in_map_units_minus_1+1);
-		// System.out.println("pic_width_in_mbs_minus_1 "+PicWidthInMbs);
 		PicHeightInMbs = FrameHeightInMbs / (1+(field_pic_flag ? 1:0));
 		PicWidthInSamplesL=PicWidthInMbs*16;
 		PicHeightInSamplesL=PicHeightInMbs*16;
-		// System.out.println("pic height "+PicHeightInSamplesL);
 		MacroBlockData =new MacroBlock[PicHeightInMbs*PicWidthInMbs];
-		// System.out.println("MacroBlockData "+ MacroBlockData.length);
 		SL=new int [PicWidthInSamplesL][PicHeightInSamplesL];
-
 		predL=new int[16][16];
-		// QPY = pps0.pic_init_qp_minus26+slice_qp_delta+26;
-		// System.out.println("PicWidthInSamplesL "+PicWidthInMbs);
 		slice_layer_without_partitioning_rbsp();
-
-		
-		// If separate_colour_plane_flag is equal to 0, ChromaArrayType is set equal to chroma_format_idc.
-		// – Otherwise (separate_colour_plane_flag is equal to 1), ChromaArrayType is set equal to 0.
 	}
 	public void slice_layer_without_partitioning_rbsp(){
 		slice_header();	
 		slice_data();
-		  // all categories of slice data syntax
-		// rbsp_slice_trailing_bits(); // 
 	}
 
 	public void Intra_16x16_prediction_process_for_luma_samples(){
@@ -641,13 +626,13 @@ public class Slice{
 		x0=0;
 		y0=0;
 		for(int i=0;i<nE;i++){
-			System.out.println();
+			// System.out.println();
 			for(int j=0;j<nE;j++){
 				// System.out.print(u[i][j]+" ");
 				if(!MbaffFrameFlag){
 					// System.out.print(u[i][j]+" ");
 					SL[xp+x0+j][yp+y0+i]=u[i][j];
-					System.out.print(SL[xp+x0+j][yp+y0+i]+" ");
+					// System.out.print(SL[xp+x0+j][yp+y0+i]+" ");
 				}else{
 					SL[xp+x0+j][yp+(2*(y0+i))]=u[i][j];
 					// System.out.print(SL[xp+x0+j][yp+(2*(y0+i))]+" ");
@@ -744,11 +729,6 @@ public class Slice{
 		for(int luma4x4BlkIdx=0;luma4x4BlkIdx<16;luma4x4BlkIdx++){
 			int [] indexes=get_block_dc_location(luma4x4BlkIdx);
 			lumaList[0]=dcy[indexes[0]][indexes[1]];
-			// j=j+1;
-			// if(j==4){
-			// 	j=0;
-			// 	i++;
-			// }
 			int count=0;
 			for(int k=1;k<16;k++){
 				lumaList[k]=Intra16x16ACLevel[luma4x4BlkIdx][k-1];
@@ -789,9 +769,6 @@ public class Slice{
 		// 5
 		Picture_construction_process_prior_to_deblocking_filter_process(u);
 	}
-	// 6.4.3
-
-
 	public void Transform_coefficient_decoding(){
 		Intra_16x16_prediction_process_for_luma_samples();
 		int nE,x0,y0;
@@ -1126,83 +1103,53 @@ public class Slice{
 	
 	}
 	public void slice_header(){
-		// System.out.println("lame things" + pps0.entropy_coding_mode_flag);
 		first_mb_in_slice = p.uev();
-		// System.out.println("first_mb_in_slice " + first_mb_in_slice);
 		slice_type = p.uev();
-		// System.out.println("slice_type "+slice_type);
 		pic_parameter_set_id=p.uev();
-		// System.out.println("pic_parameter_set_id " +pic_parameter_set_id);
 		if(sps0.separate_colour_plane_flag){
 			colour_plane_id=p.readBits(2);
-			// System.out.println("colour_plane_id "+colour_plane_id);
 
 		}
 		int v = sps0.log2_max_frame_num_minus4;
 		frame_num=p.readBits(v+4);
-		// System.out.println("frame_num "+frame_num);
-		// setting the idr pic flag;
 		if(nal0.nal_unit_type==5) {
 			IdrPicFlag=true;	
 		}else {
 			IdrPicFlag=false;
 		}
-		// setting IDR
 		field_pic_flag=false;
-		if(!(sps0.frame_mbs_only_flag)){ // false , either a frame or a field , true , definetly frame 
-			field_pic_flag=p.getBit(); // true field , false frame
-			// System.out.println("field_pic_flag "+field_pic_flag); 
+		if(!(sps0.frame_mbs_only_flag)){ 
+			field_pic_flag=p.getBit();
 			if(field_pic_flag){
 				bottom_field_flag=p.getBit();
 			}
 		}
 		if(IdrPicFlag){
-			// idr_pic_id=0;
 			idr_pic_id=p.uev();
-			// System.out.println("idr_pic_id "+idr_pic_id);
 		}
 		if(sps0.pic_order_cnt_type==0){
-			// System.out.println("here");
-			// pic_order_cnt_lsb specifies the picture 
-			// order count modulo MaxPicOrderCntLsb for 
-			// the top field of a coded frame or for a coded 
-			// field. The length of the pic_order_cnt_lsb syntax 
-			// element is log2_max_pic_order_cnt_lsb_minus4 + 4 
-			// bits. The value of the pic_order_cnt_lsb shall be 
-			// in the range of 0 to MaxPicOrderCntLsb − 1, 
-			// inclusive.
 			int n=sps0.log2_max_pic_order_cnt_lsb_minus4+4; //
 			pic_order_cnt_lsb=p.readBits(n);
-			// System.out.println("pic_order_cnt_lsb "+pic_order_cnt_lsb);
 			if (pps0.bottom_field_pic_order_in_frame_present_flag&&!field_pic_flag) {
 				delta_pic_order_cnt_bottom=p.sev();
-				// System.out.println("delta_pic_order_cnt "+ delta_pic_order_cnt);
 
 			}
 		}
 		delta_pic_order_cnt=new int[3]; // 
 		if(sps0.pic_order_cnt_type==1&&sps0.delta_pic_order_always_zero_flag){
 			delta_pic_order_cnt[0]=p.sev();
-			// System.out.println("delta_pic_order_cnt "+delta_pic_order_cnt[0]);
 		}
-			// System.out.println("lame things " + pps0.bottom_field_pic_order_in_frame_present_flag);
-			// System.out.println("lame things " + field_pic_flag);
 		if(pps0.bottom_field_pic_order_in_frame_present_flag&&!field_pic_flag){
 			delta_pic_order_cnt[1]=p.sev();
-			// System.out.println("delta_pic_order_cnt 1 "+delta_pic_order_cnt[1]);
 
 		}
-			// System.out.println("lame things " + pps0.redundant_pic_cnt_present_flag);
 		if(pps0.redundant_pic_cnt_present_flag){
 			redundant_pic_cnt=p.uev();
-			// System.out.println("redundant_pic_cnt "+redundant_pic_cnt);
 
 		}
-			//slice typee
 		if(slice_type==1||slice_type==6){
 			direct_spatial_mv_pred_flag=p.getBit();
 		}
-			//p sp b
 			// 0	P (P slice)
 			// 1	B (B slice)
 			// 2	I (I slice)
@@ -1225,32 +1172,22 @@ public class Slice{
 			}
 		}
 		if(nal0.nal_unit_type==20||nal0.nal_unit_type==21){
-			//To be implemeted
 
-			// ref_pic_list_mvc_modification( ) /* specified in Annex H */2
 		}else{
-			// ref_pic_list_modification()
 		}
 
 		if(pps0.weighted_pred_flag&&(slice_type==0||slice_type==5
 			||slice_type==3||slice_type==8)||(pps0.weighted_bipred_idc==1&&(slice_type==1 ||slice_type==6)
 			)){
-			// pred_weight_table()
 		}
 
 		if(nal0.nal_ref_idc!=0){
-			// System.out.println("dec_ref_pic_marking   ");
-			// dec_ref_pic_marking();
 			dec_ref_pic_marking();
 		}
 		if(pps0.entropy_coding_mode_flag&&slice_type!=7&&slice_type!=2&&slice_type!=4&&slice_type!=9){
 			cabac_init_idc=p.uev();	
 		}
-		// System.out.println();
-		// System.out.println("qp    "+p.sev());
 		slice_qp_delta=p.sev();
-		// QPY = pps0.pic_init_qp_minus26+slice_qp_delta+26;
-		// System.out.println(slice_qp_delta);
 
 		if(slice_type==3||slice_type==8||slice_type==4||slice_type==9){
 			if (slice_type==3||slice_type==8) {
@@ -1260,30 +1197,15 @@ public class Slice{
 		}
 		if (pps0.deblocking_filter_control_present_flag) {
 			disable_deblocking_filter_idc=p.uev();
-			// System.out.println("disable_deblocking_filter_idc "+disable_deblocking_filter_idc);
-			if (disable_deblocking_filter_idc!=1) {
 				slice_alpha_c0_offset_div2=p.sev();
 				slice_beta_offset_div2=p.sev();
-				// System.out.println("slice_alpha_c0_offset_div2 "+slice_alpha_c0_offset_div2);
-				// System.out.println("slice_beta_offset_div2 "+slice_beta_offset_div2);
 			}
-		}
-		// System.out.println("here ");
 		slice_group_change_cycle=0;
 		if (pps0.num_slice_groups_minus1>0&&pps0.slice_group_map_type>=3&&pps0.slice_group_map_type<=5) {
-			// slice_group_change_cycle;
 			int bits = (int)Math.ceil(Math.log((pps0.pic_size_in_map_units_minus1+1)/(pps0.slice_group_change_rate_minus1+1)+1));
 			slice_group_change_cycle=p.readBits(bits);
-			// System.out.println("bits "+bits);
-			// Ceil( Log2( PicSizeInMapUnits / SliceGroupChangeRate + 1 ) )
 		}
-
 		QPY = pps0.pic_init_qp_minus26+slice_qp_delta+26;
-
-
-			// System.out.println("false");
-		// System.out.println("slice_group_change_cycle "+slice_group_change_cycle);
-		// System.out.println("******** end of slice header ********");
 	}
 	
 
@@ -1375,15 +1297,11 @@ public class Slice{
 		int counter=0;
 		if(pps0.entropy_coding_mode_flag) {
 			while(! p.byte_aligned()) {
-				// System.out.println("entropy mode");
 				cabac_alignment_one_bit = p.readBits(1);
 			}
 		}
-
-		MbaffFrameFlag = sps0.mb_adaptive_frame_field_flag && (field_pic_flag == false);
-		
-		CurrMbAddr = first_mb_in_slice * ( (MbaffFrameFlag ? 1 : 0) + 1 ); // bool to 
-																		// int conversion 
+		MbaffFrameFlag = sps0.mb_adaptive_frame_field_flag && (field_pic_flag == false);		
+		CurrMbAddr = first_mb_in_slice * ( (MbaffFrameFlag ? 1 : 0) + 1 );																// int conversion 
 		moreDataFlag = true;
 		prevMbSkipped = false;
 		while(moreDataFlag) {
@@ -1401,33 +1319,24 @@ public class Slice{
 						System.out.println("skip mb in stream");
 					}
 				} else {
-					//CABAC
-					// mb_skip_flag=p.aev(); // aev read cant do right now ..surman 
-					// moreDataFlag = !mb_skip_flag;
-				}
-				// incomplete becuase we are still dealing with I type slice 
+					}
 			}
-			// System.out.println("moreDataFlag"+moreDataFlag);
 			if(moreDataFlag) {
-				// System.out.println("here moreDataFlag");
 				if(MbaffFrameFlag && (CurrMbAddr % 2 == 0 ||
 					 (CurrMbAddr % 2 == 1 && prevMbSkipped))) {
 					mb_field_decoding_flag = p.getBit(); //
 				}
 				System.out.println("mb extracted "+ counter++);
-				// Scanner scan= new Scanner(System.in);
-				// if(!moreDataFlag){
-				// 	break;
-				// }
-				// int x=scan.nextInt();
-				// System.out.println("moreDataFlag "+moreDataFlag);
-				System.out.println(p.pointer+" p at");
-				macroblock_layer();  
-				System.out.println(p.pointer+" p at");
-
-				// break;
-				Scanner scan= new Scanner(System.in);
-				// int x=scan.nextInt();
+				System.out.println("************************ "+p.pointer+"**************************");
+				System.out.println();
+				macroblock_layer(); 
+				System.out.println(); 
+				System.out.println("************************ "+p.pointer+"**************************");
+				if(counter>1300){
+					Scanner scan= new Scanner(System.in);
+					System.out.println(" enter 1 to next block ");
+					int x=scan.nextInt();
+				}
 			}
 			if(! pps0.entropy_coding_mode_flag) {
 				moreDataFlag = p.more_rbsp_data();
@@ -1436,14 +1345,11 @@ public class Slice{
 				if(!(slice_type == 2 || slice_type == 7) && 
 						!(slice_type == 4 || slice_type == 9)) {
 
-					// prevMbSkipped = mb_skip_flag; // CABAC
 				}
 				if(MbaffFrameFlag && CurrMbAddr % 2 == 0){
 					moreDataFlag = true;
 
 				} else {
-					// 	end_of_slice_flag = entrpy coding .. (ae(v)); entropy coding // 
-					// moreDataFlag = !end_of_slice_flag;
 				}	
 			}
 			CurrMbAddr = NextMbAddress(CurrMbAddr);
@@ -1552,9 +1458,9 @@ public class Slice{
 				availableFlagC=false;
 				availableFlagD=false;
 			}
-			System.out.println(" curr "+CurrMbAddr+" "+mbAddrA+" "+mbAddrB+" blk "+ luma4x4BlkIdx +" "+luma4x4BlkIdxA+" "+luma4x4BlkIdxB);
-
+			// System.out.println(" curr "+CurrMbAddr+" " + " a "+mbAddrA+"  b  "+mbAddrB+" blk "+ luma4x4BlkIdx +" "+luma4x4BlkIdxA+" "+luma4x4BlkIdxB);
 			if(availableFlagA){
+				// System.out.println(MacroBlockData[mbAddrA].mb_type_+ " tyoe");
 
 				if(MacroBlockData[mbAddrA].mb_type_.equals("P_Skip")||MacroBlockData[mbAddrA].mb_type_.equals("B_Skip")){
 					nA=0;
@@ -1769,7 +1675,7 @@ public class Slice{
 					// if(CodedBlockPatternChroma==0){
 
 					// }
-					System.out.println((CodedBlockPatternLuma & (1<<i8x8))+" if cond "+CodedBlockPatternLuma+"");
+					// System.out.println((CodedBlockPatternLuma & (1<<i8x8))+" if cond "+CodedBlockPatternLuma+"");
 					if((CodedBlockPatternLuma & (1<<i8x8))>0){
 						if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 							// i16x16AClevel=
@@ -1844,13 +1750,15 @@ public class Slice{
 		System.out.println("implemetation sub_mb_type");
 		return"nill";
 	}
-	public void mb_pred(int mb_type){
-		// ref_idx_l0
-		// System.out.println("call to mb_pred "+MbPartPredMode(mb_type,0));
-		if(MbPartPredMode(mb_type,0).equals("Intra_4x4")||
-			MbPartPredMode(mb_type,0).equals("Intra_8x8")||
-			MbPartPredMode(mb_type,0).equals("Intra_16x16")){
-			if(MbPartPredMode(mb_type,0).equals("Intra_4x4")){
+	public void mb_pred(int r){
+		if(!transform_size_8x8_flag&&r==0){
+			r=-1;
+		}
+		// System.out.println("call to mb_pred "+MbPartPredMode(r,0));
+		if(MbPartPredMode(r,0).equals("Intra_4x4")||
+			MbPartPredMode(r,0).equals("Intra_8x8")||
+			MbPartPredMode(r,0).equals("Intra_16x16")){
+			if(MbPartPredMode(r,0).equals("Intra_4x4")){
 				prev_intra4x4_pred_mode_flag=new boolean[16];
 				rem_intra4x4_pred_mode=new int [16];
 				for (luma4x4BlkIdx=0;luma4x4BlkIdx<16 ;luma4x4BlkIdx++ ) {
@@ -1863,8 +1771,7 @@ public class Slice{
 				}
 
 			}
-			if(MbPartPredMode(mb_type,0).equals("Intra_8x8")){
-				// System.out.println("seccond if ");
+			if(MbPartPredMode(r,0).equals("Intra_8x8")){
 				prev_intra8x8_pred_mode_flag=new boolean[4];
 				rem_intra8x8_pred_mode=new int [4];
 				for (int luma8x8BlkIdx=0;luma8x8BlkIdx<4 ;luma8x8BlkIdx++ ) {
@@ -1879,8 +1786,9 @@ public class Slice{
 			if(ChromaArrayType==1||ChromaArrayType==2){
 				// System.out.println("chroma tyoe 1 or 2");
 				intra_chroma_pred_mode=p.uev();
+				System.out.println(intra_chroma_pred_mode+" intra_chroma_pred_mode ");
 			}
-		}else if(!MbPartPredMode(mb_type,0).equals("Direct")){
+		}else if(!MbPartPredMode(r,0).equals("Direct")){
 			
 
 
@@ -1906,19 +1814,7 @@ public class Slice{
 	public void sub_mb_pred(int mb_type){}// not for i slice
 
 	public void macroblock_layer() {
-		// unimplemented
-		// table 7.11
-		// mb_type
-		// Name of mb_type
-		// transform_size_8x8_flag
-		// MbPartPredMode ( mb_type, 0 )
-		// Intra16x16PredMode
-		// CodedBlockPatternChroma
-		// CodedBlockPatternLuma
-
-		// macroblock_layer( ) { C Descriptor mb_type 2 ue(v) | ae(v) if( mb_type = = I_PCM ) { while( !byte_aligned( ) ) pcm_alignment_zero_bit 3 f(1) for( i = 0; i < 256; i++ ) pcm_sample_luma[ i ] 3 u(v) for( i = 0; i < 2 * MbWidthC * MbHeightC; i++ ) pcm_sample_chroma[ i ] 3 u(v) } else { noSubMbPartSizeLessThan8x8Flag = 1 if( mb_type != I_NxN && MbPartPredMode( mb_type, 0 ) != Intra_16x16 && NumMbPart( mb_type ) = = 4 ) { sub_mb_pred( mb_type ) 2 for( mbPartIdx = 0; mbPartIdx < 4; mbPartIdx++ ) if( sub_mb_type[ mbPartIdx ] != B_Direct_8x8 ) { if( NumSubMbPart( sub_mb_type[ mbPartIdx ] ) > 1 ) noSubMbPartSizeLessThan8x8Flag = 0 } else if( !direct_8x8_inference_flag ) noSubMbPartSizeLessThan8x8Flag = 0 } else { if( transform_8x8_mode_flag && mb_type = = I_NxN ) transform_size_8x8_flag 2 u(1) | ae(v) mb_pred( mb_type ) 2 } if( MbPartPredMode( mb_type, 0 ) != Intra_16x16 ) { coded_block_pattern 2 me(v) | ae(v) if( CodedBlockPatternLuma > 0 && transform_8x8_mode_flag && mb_type != I_NxN && noSubMbPartSizeLessThan8x8Flag && ( mb_type != B_Direct_16x16 | | direct_8x8_inference_flag ) ) transform_size_8x8_flag 2 u(1) | ae(v) } if( CodedBlockPatternLuma > 0 | | CodedBlockPatternChroma > 0 | | MbPartPredMode( mb_type, 0 ) = = Intra_16x16 ) { mb_qp_delta 2 se(v) | ae(v) residual( 0, 15 ) 3 | 4 } } }
 		int MbWidthC;
-		// System.out.println("macroblock_layer");
 		int MbHeightC;
 		if(sps0.chroma_format_idc==0||sps0.separate_colour_plane_flag){
 			MbWidthC=0;
@@ -1929,33 +1825,20 @@ public class Slice{
 			MbHeightC=16/getSubHeightC();
 		}
 		mbRow=p.uev();
-		// System.out.println("mb row  "+mbRow);
-		// System.out.println(" came ");
-		// pause(0.1);
 		mb_type=p.Mb_Type("table7.11.txt",mbRow,1);
-		// System.out.println("mb_type "+mb_type);
+		System.out.println("mb type ==> "+mb_type);
 		String patLuma,patChroma;
 		patLuma=p.Mb_Type("table7.11.txt",mbRow,6);
 		patChroma=p.Mb_Type("table7.11.txt",mbRow,5);
 		CodedBlockPatternChroma=0;
 		CodedBlockPatternLuma=0;
-		// CodedBlockPatternLuma = coded_block_pattern % 16 
-		// CodedBlockPatternChroma = coded_block_pattern / 16
 		if(patChroma.equals("Equation7-36")){
-			// System.out.println("true eq "+coded_block_pattern);
 			CodedBlockPatternLuma = coded_block_pattern %16;
 			CodedBlockPatternChroma = (int)(coded_block_pattern/16.0);
-			// System.out.println("luma "+CodedBlockPatternLuma);
-			// System.out.println("chroma "+CodedBlockPatternChroma);
-
-
 		}else{
 			CodedBlockPatternChroma=Integer.parseInt(patChroma);
 			CodedBlockPatternLuma=Integer.parseInt(patLuma);
-
 		}
-		// System.out.println("");
-		// System.out.println(" ********************** slice layer unimplemented "+mb_type);
 		if(mb_type.equals("I_PCM")){
 			while(!p.byte_aligned()){
 				pcm_alignment_zero_bit=p.readBits(1);
@@ -1974,7 +1857,7 @@ public class Slice{
 			for(int i=0;i<pcm_sample_chroma_Size;i++){
 				pcm_sample_chroma[i]=p.readBits(BitDepthC);
 			}
-		}else {			// &&NumMbPart(mbRow)==4
+		}else {
 			noSubMbPartSizeLessThan8x8Flag=true;
 			if(!mb_type.equals("I_NxN")&& !MbPartPredMode(mbRow,0).equals("Intra_16x16")
 			&&NumMbPart(mbRow)==4){
@@ -1990,6 +1873,7 @@ public class Slice{
 					}
 				}
 			}else{
+
 
 				if(pps0.transform_8x8_mode_flag&& mb_type.equals("I_NxN")){
 					transform_size_8x8_flag=p.getBit();
@@ -2007,64 +1891,47 @@ public class Slice{
 				}else{
 					CodedBlockPatternChroma=Integer.parseInt(patChroma);
 					CodedBlockPatternLuma=Integer.parseInt(patLuma);
-					// System.out.println("CodedBlockPatternChroma "+coded_block_pattern);
 				}
 				if(CodedBlockPatternLuma>0&&pps0.transform_8x8_mode_flag
 					&&!mb_type.equals("I_NxN")
 					&&noSubMbPartSizeLessThan8x8Flag&&(!mb_type.equals("B_Direct_16x16")
 						||sps0.direct_8x8_inference_flag)){
 					transform_size_8x8_flag=p.getBit();
-					// System.out.println("transform_size_8x8_flag  ");
 				}
 			}
 
 			if(CodedBlockPatternLuma>0||CodedBlockPatternChroma>0||
 				MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 				mb_qp_delta=p.sev();
-				// QPY=((QPY+mb_qp_delta+52+2*QpBdOffsetY)%(52+QpBdOffsetY))-QpBdOffsetY;
 				if(mb_qp_delta!=0){
-					// System.out.println(mb_qp_delta);
 					QPY=((QPY+mb_qp_delta+52+(2*QpBdOffsetY))%(52+QpBdOffsetY))-QpBdOffsetY;
 
 				}
-				// System.out.println("mb_qp_delta"+mb_qp_delta);
 				residual(0,15);
-				// Transform_coefficient_decoding();
 				transform_decoding_process_for_luma_samples_of_Intra_16x16();
 				transform_decoding_process_for_chroma_samples();
 				mbData.mb_type_=mb_type;
 				MacroBlockData[CurrMbAddr]=mbData;
-				// for(int i=0;i<=CurrMbAddr;i++){
-				System.out.println("luma ac");
 					for(int j=0;j<16;j++){
-						// System.out.print(MacroBlockData[CurrMbAddr].luma4x4blk[j]+" ");	
-					// }
-					
-					// ;
 
 				}
-				// System.out.println();
-				// System.out.println("cb ac");
 
 				for(int j=0;j<16;j++){
-						// System.out.print(MacroBlockData[CurrMbAddr].cbcr4x4blk[0][j]+" ");	
-					// }
 					
-					// ;
 
 				}
-				// System.out.println();
-				// System.out.println("cr ac");
 
 				for(int j=0;j<16;j++){
-						// System.out.print(MacroBlockData[CurrMbAddr].cbcr4x4blk[1][j]+" ");	
 					}
 
 
 
 			}
+
 		}
-		// ToImage();
+		mbData.mb_type_=mb_type;
+
+		MacroBlockData[CurrMbAddr]=mbData;
 	}
 
 
@@ -2076,7 +1943,7 @@ public class Slice{
 		int col=SL[0].length;
 		int cr=0;
 		int cb=0;
-		System.out.println(row+" "+col);
+		// System.out.println(row+" "+col);
 		int[] intArray = new int[3*row*col];
 		int w=row;
 	    int h=col;
@@ -2102,15 +1969,3 @@ public class Slice{
 	    }
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-

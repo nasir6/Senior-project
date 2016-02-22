@@ -431,12 +431,22 @@ public class parser{
 				}else{
 					runVal[i]=0;
 				}
-				zerosLeft=zerosLeft- runVal[i];
+				zerosLeft=zerosLeft - runVal[i];
 			}
-			runVal[TotalCoeff-1]=zerosLeft;
+			if(zerosLeft<0){
+				runVal[TotalCoeff-1]=0;
+
+			}else{
+				runVal[TotalCoeff-1]=zerosLeft;
+
+			}
 			int coeffNum=-1;
+			System.out.println(TotalCoeff+" TotalCoeff");
+
 			for(int i=TotalCoeff-1;i>=0;i--){
+				// System.out.println(startIdx+" runVal");
 				coeffNum+=runVal[i]+1;
+				// System.out.println(coeffNum+ " <===> "+ startIdx);
 				coeffLevel[startIdx+coeffNum]=levelVal[i];
 			}
 

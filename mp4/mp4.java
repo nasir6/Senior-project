@@ -2,6 +2,14 @@ public class mp4{
 	String filename = "mp4.mp4";
 	byte spsData[];
 	byte ppsData[];
+	int chunkNum[]; // stsc
+	int samplePerChunk[]; // stsc
+	int sDINum[]; // stsc
+	int chunkOffsets[]; //stco
+	int sampleSizes[]; // stsz
+	int keyFrameSampleNumber[]; //  stss
+	int sampleOffsets[]; 
+
 	int ReadBox(String boxId, int offSet){
 		int count =100;
 		int size=0;
@@ -170,32 +178,57 @@ public class mp4{
 		boxOffset = ReadBox("stsc",stblOffset+8);
 		ReadFile chunkCount = new ReadFile(boxOffset+8 + 4, 4,filename);
 		chunkCount.readBytes();
+		// TOTAL NUM OF CHUNKS (NEED TO RUN A LOOP HERE)
 		// System.out.println(chunkCount.ToDECIMAL());
-		ReadFile firstChunk = new ReadFile(boxOffset+8 + 4 + 4, 4,filename);
-		firstChunk.readBytes();
-		// System.out.println(firstChunk.ToDECIMAL());
-		ReadFile samplePerChunk = new ReadFile(boxOffset+8 + 4 + 4 + 4, 4,filename);
-		samplePerChunk.readBytes();
-		// System.out.println(samplePerChunk.ToDECIMAL());
-		ReadFile sDI = new ReadFile(boxOffset+8 + 4 + 4 + 4 + 4, 4,filename);
-		sDI.readBytes();
-		// System.out.println(sDI.ToDECIMAL());
+		chunkNum = new int[chunkCount.ToDECIMAL()];
+		samplePerChunk = new int[chunkCount.ToDECIMAL()];
+		sDINum = new int[chunkCount.ToDECIMAL()];
+		for(int i = 0; i < chunkCount.ToDECIMAL(); i++) {
+			ReadFile firstChunk = new ReadFile(boxOffset+8 + 4 + 4, 4,filename);
+			firstChunk.readBytes(); 
+			chunkNum[i] = firstChunk.ToDECIMAL();
+
+			// System.out.println(firstChunk.ToDECIMAL());
+			ReadFile sampleInAChunkT = new ReadFile(boxOffset+8 + 4 + 4 + 4, 4,filename);
+			sampleInAChunkT.readBytes();
+			samplePerChunk[i] = sampleInAChunkT.ToDECIMAL(); 
+			// System.out.println(samplePerChunk.ToDECIMAL());
+			ReadFile sDI = new ReadFile(boxOffset+8 + 4 + 4 + 4 + 4, 4,filename);
+			sDI.readBytes(); // sDI KEA HAI ..?
+			sDINum[i] = sDI.ToDECIMAL();
+			boxOffset = boxOffset + 12; 
+		}
 		boxOffset = ReadBox("stco" ,stblOffset + 8);
-		ReadFile chunkCount1 = new ReadFile(boxOffset+8 + 4, 4,filename);
-		chunkCount1.readBytes();
-		// System.out.println(chunkCount1.ToDECIMAL());
+		ReadFile numOfChunkEnteries = new ReadFile(boxOffset+8 + 4, 4,filename);
+		numOfChunkEnteries.readBytes();
 		int n = 4;
-		ReadFile chunkOffset = new ReadFile(boxOffset+8 + 4 +n, 4,filename);
-		chunkOffset.readBytes();
-		// System.out.println("chunkOffset == "+chunkOffset.ToDECIMAL());
-		n=n+4;
+		chunkOffsets = new int[numOfChunkEnteries.ToDECIMAL()];
+		for(int i = 0; i < numOfChunkEnteries.ToDECIMAL(); i++) {
+
+			ReadFile tempChunkOffset = new ReadFile(boxOffset+8 + 4 +n, 4,filename);
+			tempChunkOffset.readBytes();
+			chunkOffsets[i] = tempChunkOffset.ToDECIMAL();
+			// System.out.println("chunkOffset == "+chunkOffset.ToDECIMAL());
+			n=n+4;
+		}
+		// System.out.println(chunkOffsets[0]);
 		boxOffset = ReadBox("stsz" ,stblOffset + 8);
-		ReadFile sampleSize = new ReadFile(boxOffset+8 + 4, 4,filename);
-		sampleSize.readBytes();
+		ReadFile sampleSizetemp = new ReadFile(boxOffset+8 + 4, 4,filename);
+		sampleSizetemp.readBytes();
 		// System.out.println(sampleSize.ToDECIMAL());
 		ReadFile sampleCount = new ReadFile(boxOffset+8 + 4+4, 4,filename);
 		sampleCount.readBytes();
+		sampleSizes = new int[sampleCount.ToDECIMAL()];
+		int x = 4;
 		// System.out.println(sampleCount.ToDECIMAL());
+		for(int i =0; i< sampleCount.ToDECIMAL(); i ++) {
+			ReadFile firstSample = new ReadFile(boxOffset+8 + 4+4+x, 4,filename);
+			firstSample.readBytes();
+			sampleSizes[i] = firstSample.ToDECIMAL();
+			x = x + 4;
+		}
+		// System.out.println(sampleSizes[0]);
+		// System.out.println(sampleSizes[1674]);
 		ReadFile firstSample = new ReadFile(boxOffset+8 + 4+4+4, 4,filename);
 		firstSample.readBytes();
 		// System.out.println("firstSample Size == "+firstSample.ToDECIMAL());
@@ -203,13 +236,58 @@ public class mp4{
 		boxOffset = ReadBox("stss",stblOffset+8);
 		ReadFile keyFrame = new ReadFile(boxOffset+8 + 4, 4,filename);
 		keyFrame.readBytes();
-		// System.out.println("Number of keyFrame = "+keyFrame.ToDECIMAL());
+		keyFrameSampleNumber = new int[keyFrame.ToDECIMAL()];
+		x = 4;
+		for(int i = 0; i < keyFrame.ToDECIMAL(); i++) {
+			ReadFile keyFrameOffset = new ReadFile(boxOffset+8 + 4+x, 4,filename);
+			keyFrameOffset.readBytes();
+			keyFrameSampleNumber[i] = keyFrameOffset.ToDECIMAL(); 
+			x = x + 4;
+		}
+		sampleOffsets = new int[sampleSizes.length];
+		// System.out.println(sampleSizes.length);
+		int counter = 0;
+		int chunkcount = 0;
+		// for(int i = 0; i < chunkOffsets.length; i++) {
+		// }
+		for(int i = 0; i < chunkCount.ToDECIMAL(); i++) { //
+			if(i < (chunkCount.ToDECIMAL() - 1) ) { 
+				for(int k = chunkNum[i]; k < chunkNum[i + 1]; k++ ) {
+					int tempsize = 0;
+					for(int j = 0; j < samplePerChunk[i]; j++) {
+						sampleOffsets[counter] = chunkOffsets[chunkcount] + (tempsize);
+						tempsize = tempsize + sampleSizes[counter];
+						counter++;
+						// System.out.print(sampleOffsets[i + j]+" ");
+					}
+					chunkcount = chunkcount + 1;
+				}
+			} else {
+				 for(int k = chunkNum[i]; k <= chunkOffsets.length; k++ ) {
+					int tempsize = 0;
+					for(int j = 0; j < samplePerChunk[i]; j++) {
+						sampleOffsets[counter] = chunkOffsets[chunkcount] + (tempsize);
+						tempsize = tempsize + sampleSizes[counter];
+						counter++;
+						// System.out.print(sampleOffsets[i + j]+" ");
+					}
+					chunkcount = chunkcount + 1;
+				}
+			}
+		}
+		// System.out.println(chunkCount.ToDECIMAL());
+		// System.out.println(chunkNum.length);
+		System.out.println(sampleOffsets.length + " lame  ");
+		System.out.println(chunkOffsets.length);
 
-		ReadFile keyFrameOffset = new ReadFile(boxOffset+8 + 4+4, 4,filename);
-		keyFrameOffset.readBytes();
+		// for (int i = 0;i < sampleOffsets.length; i++ ) {
+		System.out.print(sampleOffsets[167] + " ");
+		// }
+		// }
+		// System.out.println("Number of keyFrame = "+keyFrame.ToDECIMAL());
 		// System.out.println("offSet of keyFrame = "+keyFrameOffset.ToDECIMAL());
-		ReadFile image = new ReadFile(chunkOffset.ToDECIMAL(),4,filename);
-		image.readBytes();
+		// ReadFile image = new ReadFile(chunkOffset.ToDECIMAL(),4,filename); /// need to make changes here, chunkoffset here is temp chunk offset
+		// image.readBytes(); // need to make change here
 		// System.out.println("Relative Time == "+image.ToDECIMAL());		
 	}
 	mp4(){
