@@ -42,9 +42,9 @@ public class parser{
 		rbsp_trailing_bits();
 		if((pointer) < bytestream.length*8) {
 			pointer=pointer_temp;
-
 			return true;
 		} else {
+			pointer=pointer_temp;
 			return false;
 		}
 	}
@@ -115,32 +115,37 @@ public class parser{
 		return value;
 	}
 	public int mev(int mode,int ChromaArrayType_){
-		int[] tableIntra={47,31,15,0,23,27,29,30,7,11,13,14,39,43,
+		int[] tableIntra12={47,31,15,0,23,27,29,30,7,11,13,14,39,43,
 			45,46,16,3,5,10,12,19,21,26,28,35,37,42,44,1,2,4,8,17,18,
 			20,24,6,9,22,25,32,33,34,36,40,38,41};
-		int[] tableInter={0,16,1,2,4,8,32,3,5,10,12,15,47,7,
+		int[] tableInter12={0,16,1,2,4,8,32,3,5,10,12,15,47,7,
 			11,13,14,6,9,31,35,37,42,44,33,
 			34,36,40,39,43,45,46,17,18,20,24,19,21,26,28,23,27,
 			29,30,22,25,38,41};	
-			int k=ExpGolombDecode();
-			// System.out.println(k+"  kkkkkkkkkkkkkk");
-			if(ChromaArrayType_==1||ChromaArrayType_==2){
-				return (mode == 0 ? tableInter[k] : tableIntra[k]);	
-			}
-			return 0;
+		int[] tableInter03={0,1,2,4,8,3,5,10,12,15,7,11,13,14,6,9};
+		int[] tableIntra03={15,0,7,11,13,14,3,5,10,12,1,2,4,8,6,9};
+		int k=ExpGolombDecode();
+		// System.out.println(k+"  kkkkkkkkkkkkkk");
+		if(ChromaArrayType_==1||ChromaArrayType_==2){
+			return (mode == 0 ? tableInter12[k] : tableIntra12[k]);	
+		}
+		if(ChromaArrayType_==0||ChromaArrayType_==3){
+			return (mode == 0 ? tableInter03[k] : tableIntra03[k]);	
+		}
+		return 0;
 	}
-	//ce(v)
-	// Inputs to this process are bits from slice data, a maximum number of non-zero transform coefficient 
-	// levels maxNumCoeff, the luma block index luma4x4BlkIdx or the chroma block index chroma4x4BlkIdx, 
-	// cb4x4BlkIdx or cr4x4BlkIdx of the current block of transform coefficient levels.
-	// Output of this process is the list coeffLevel containing transform coefficient levels of the luma block 
-	// with block index luma4x4BlkIdx or the chroma block with block index chroma4x4BlkIdx, cb4x4BlkIdx or cr4x4BlkIdx.
-	// public int cavlc(){
-
-	// }
-	// public int tev(){
+	public int tev(){
+		int codeNum;
+		int x=ExpGolombDecode();
+		codeNum=x;
+		if(x>1){
+			return x;
+		}else if(x==1){
+			codeNum=(readBits(1)==0) ? 1 : 0;
+		}
+		return codeNum;
 		
-	// }
+	}
 	public int countlines(String filename){
 		BufferedReader br = null;
 		int count=0;
@@ -244,13 +249,17 @@ public class parser{
 		if(tablename.equals("table7.11.txt")){
 			row=27;
 			col=7;
+			String lookupTable[][]=loadTable(tablename,row,col);
+			return lookupTable[lookUpRow+1][lookUpCol];
 		}
 		if(tablename.equals("table7.13.txt")){
 			row=6;
 			col=7;
 		}
 		String lookupTable[][]=loadTable(tablename,row,col);
-		return lookupTable[lookUpRow+1][lookUpCol];
+		// if(tablename.equals)
+		return lookupTable[lookUpRow][lookUpCol];
+
 	}
 
 	public int[] cavlcTableLookUp(String filename,int row,int col){

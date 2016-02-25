@@ -75,14 +75,15 @@ public class nal
 					test.length = nallenght.ToDECIMAL(); /// NAL  UNIT TLENTH YAHAN SA PATA LAG RAHI HAI
 					test.nalOffSet = nalOffsetTemp + test.NAL_Unit_length_size;
 					test.parseNalUnit();
-					if(test.nal_unit_type==5){
+					// if(test.nal_unit_type==5){
+						System.out.println("Nal Unit Type "+test.nal_unit_type);
 						Scanner scan= new Scanner(System.in);
 						int x=scan.nextInt();
 						if(x==1){
 							Slice s1=new Slice(test.rbsp_byte,sps0,pps0,test);
 						}
 
-					}
+					// }
 					nalOffsetTemp=nalOffsetTemp+test.NAL_Unit_length_size + test.length;
 				}
 			}

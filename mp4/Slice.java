@@ -16,14 +16,12 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class Slice{
-	// ArrayList <MacroBlock> MacroBlockData= new ArrayList<MacroBlock>();	
 	MacroBlock [] MacroBlockData;
 	MacroBlock mbData=new MacroBlock();
 	sps sps0;
 	pps pps0;
 	nal nal0;
 	int[] scalingList ={6,13,13,20,20,20,28,28,28,28,32,32,32,37,37,42};
-	// int[] scalingList=new int[16];
 	boolean no_output_of_prior_pics_flag; //u1
 	boolean long_term_reference_flag;//u1
 	boolean adaptive_ref_pic_marking_mode_flag;//u1
@@ -32,9 +30,7 @@ public class Slice{
 	int long_term_pic_num;//uev
 	int long_term_frame_idx;//uev
 	int max_long_term_frame_idx_plus1;//uev
-	// int PicSizeInMapUnits;
 	boolean IdrPicFlag;
-	//***Header of slice***//
 	parser p;
 	int first_mb_in_slice; //uev
 	int slice_type; //uev
@@ -47,7 +43,6 @@ public class Slice{
 	int pic_order_cnt_lsb; //uv
 	int delta_pic_order_cnt_bottom;//sev
 	int delta_pic_order_cnt[];
-	// int delta_pic_order_cnt
 	int redundant_pic_cnt; //uev
 	boolean direct_spatial_mv_pred_flag;
 	boolean num_ref_idx_active_override_flag;
@@ -62,28 +57,22 @@ public class Slice{
 	int slice_alpha_c0_offset_div2; //sev
 	int slice_beta_offset_div2;//sev
 	int slice_group_change_cycle; //uv
-
-	// slice data variables 
 	int cabac_alignment_one_bit;
-	// MbaffFrameFlag
 	boolean MbaffFrameFlag; 
 	int CurrMbAddr;      
 	boolean moreDataFlag; //  
 	boolean prevMbSkipped; //
 	int mb_skip_run;
 	boolean mb_field_decoding_flag;
-
-	//MB layer
-
 	String mb_type; //uev|aev
 	int mbRow; // row in lookuptable for mb type
 	int pcm_alignment_zero_bit;//f1
 	int [] pcm_sample_luma; //uv [256]
 	int [] pcm_sample_chroma; //2 * MbWidthC * MbHeightC // uv
+	Scanner scan= new Scanner(System.in);
 
 	boolean transform_size_8x8_flag=false;//if not in bit stream //u1|aev
 	int coded_block_pattern; //aev mev
-	// boolean transform_size_8x8_flag; //u1|aev
 	int mb_qp_delta; //sev|aev
 	boolean noSubMbPartSizeLessThan8x8Flag;
 
@@ -121,6 +110,7 @@ public class Slice{
 	int[][] CbIntra16x16ACLevel;
 	int[][] CbLevel4x4;
 	int[][] CbLevel8x8;
+	String mb_type_table;
 
 
 
@@ -146,6 +136,17 @@ public class Slice{
 	int PicHeightInMbs;
 	int FrameHeightInMbs;
 	int [][] predL;
+
+
+	// Referene picture list modification variables 
+	boolean ref_pic_list_modification_flag_l0;
+	int modification_of_pic_nums_idc;
+	int abs_diff_pic_num_minus1;
+	// int long_term_pic_num;
+	boolean ref_pic_list_modification_flag_l1;
+	// int modification_of_pic_nums_idc;
+	// int abs_diff_pic_num_minus1;
+	int ong_term_pic_num;
 	Slice(byte[] rbsp,sps sps_,pps pps_,nal nal_0){
 		sps0=sps_;
 		pps0=pps_;
@@ -177,16 +178,519 @@ public class Slice{
 		slice_data();
 	}
 
+	public void ref_pic_list_modification(){
+		if((slice_type % 5 != 2) &&  (slice_type % 5 != 4)) {
+			ref_pic_list_modification_flag_l0 = p.getBit();
+			if(ref_pic_list_modification_flag_l0) {
+				modification_of_pic_nums_idc = p.uev();
+				while (modification_of_pic_nums_idc != 3) {
+					if(modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
+						abs_diff_pic_num_minus1 = p.uev();
+					} else if(modification_of_pic_nums_idc == 2) {
+						long_term_pic_num = p.uev();
+					}
+					modification_of_pic_nums_idc = p.uev();
+				}
+			}
+		}
+		if(slice_type % 5 == 1) {
+			ref_pic_list_modification_flag_l1 = p.getBit();
+			if (ref_pic_list_modification_flag_l1) {	
+				modification_of_pic_nums_idc = p.uev();
+				while (modification_of_pic_nums_idc != 3) {
+					if(modification_of_pic_nums_idc == 0 || modification_of_pic_nums_idc == 1) {
+						abs_diff_pic_num_minus1 = p.uev();
+					} else if(modification_of_pic_nums_idc == 2) {
+						long_term_pic_num = p.uev();
+					}
+					modification_of_pic_nums_idc = p.uev();
+				}
+			}
+		}
+	}
+	public void slice_header(){
+		first_mb_in_slice = p.uev();
+		slice_type = p.uev();
+		set_mb_type_table();
+		System.out.println("slice_type "+slice_type);
+		pic_parameter_set_id=p.uev();
+		if(sps0.separate_colour_plane_flag){
+			colour_plane_id=p.readBits(2);
+
+		}
+		int v = sps0.log2_max_frame_num_minus4;
+		frame_num=p.readBits(v+4);
+		if(nal0.nal_unit_type==5) {
+			IdrPicFlag=true;	
+		}else {
+			IdrPicFlag=false;
+		}
+		field_pic_flag=false;
+		if(!(sps0.frame_mbs_only_flag)){ 
+			field_pic_flag=p.getBit();
+			if(field_pic_flag){
+				bottom_field_flag=p.getBit();
+			}
+		}
+		if(IdrPicFlag){
+			idr_pic_id=p.uev();
+		}
+		if(sps0.pic_order_cnt_type==0){
+			int n=sps0.log2_max_pic_order_cnt_lsb_minus4+4; //
+			pic_order_cnt_lsb=p.readBits(n);
+			if (pps0.bottom_field_pic_order_in_frame_present_flag&&!field_pic_flag) {
+				delta_pic_order_cnt_bottom=p.sev();
+
+			}
+		}
+		delta_pic_order_cnt=new int[3]; // 
+		if(sps0.pic_order_cnt_type==1&&sps0.delta_pic_order_always_zero_flag){
+			delta_pic_order_cnt[0]=p.sev();
+		}
+		if(pps0.bottom_field_pic_order_in_frame_present_flag&&!field_pic_flag){
+			delta_pic_order_cnt[1]=p.sev();
+
+		}
+		if(pps0.redundant_pic_cnt_present_flag){
+			redundant_pic_cnt=p.uev();
+
+		}
+		if(slice_type==1||slice_type==6){
+			direct_spatial_mv_pred_flag=p.getBit();
+		}
+			// 0	P (P slice)
+			// 1	B (B slice)
+			// 2	I (I slice)
+			// 3	SP (SP slice)
+			// 4	SI (SI slice)
+			// 5	P (P slice)
+			// 6	B (B slice)
+			// 7	I (I slice)
+			// 8	SP (SP slice)
+			// 9	SI (SI slice)
+		if(slice_type==0||slice_type==5||slice_type==3||slice_type==8
+			||slice_type==6||slice_type==1){
+			num_ref_idx_active_override_flag=p.getBit();
+			if(num_ref_idx_active_override_flag){
+				num_ref_idx_l0_active_minus1=p.uev();
+				// System.out.println("num_ref_idx_l0_active_minus1 "+num_ref_idx_l0_active_minus1);
+				if(slice_type==1||slice_type==6){
+					num_ref_idx_l1_active_minus1=p.uev();
+
+				}
+			}
+		}
+		if(nal0.nal_unit_type==20||nal0.nal_unit_type==21){
+			System.out.println("ref_pic_list_mvc_modification( ) ");
+		}else{
+			ref_pic_list_modification();
+			// System.out.println("ref_pic_list_modification( ) to be implemented");
+		}
+
+		if(pps0.weighted_pred_flag&&(slice_type==0||slice_type==5
+			||slice_type==3||slice_type==8)||(pps0.weighted_bipred_idc==1&&(slice_type==1 ||slice_type==6)
+			)){
+		}
+
+		if(nal0.nal_ref_idc!=0){
+			dec_ref_pic_marking();
+		}
+		if(pps0.entropy_coding_mode_flag&&slice_type!=7&&slice_type!=2&&slice_type!=4&&slice_type!=9){
+			cabac_init_idc=p.uev();	
+		}
+		slice_qp_delta=p.sev();
+
+		if(slice_type==3||slice_type==8||slice_type==4||slice_type==9){
+			if (slice_type==3||slice_type==8) {
+				sp_for_switch_flag=p.getBit();
+			}
+			slice_qs_delta=p.sev();
+		}
+		if (pps0.deblocking_filter_control_present_flag) {
+			disable_deblocking_filter_idc=p.uev();
+				slice_alpha_c0_offset_div2=p.sev();
+				slice_beta_offset_div2=p.sev();
+			}
+		slice_group_change_cycle=0;
+		if (pps0.num_slice_groups_minus1>0&&pps0.slice_group_map_type>=3&&pps0.slice_group_map_type<=5) {
+			int bits = (int)Math.ceil(Math.log((pps0.pic_size_in_map_units_minus1+1)/(pps0.slice_group_change_rate_minus1+1)+1));
+			slice_group_change_cycle=p.readBits(bits);
+		}
+		QPY = pps0.pic_init_qp_minus26+slice_qp_delta+26;
+		// System.out.println("slice_qp_delta "+slice_qp_delta);
+	}
+	public void slice_data() {
+		int counter=0;
+		int x;
+
+		if(pps0.entropy_coding_mode_flag) {
+			while(! p.byte_aligned()) {
+				cabac_alignment_one_bit = p.readBits(1);
+			}
+		}
+		MbaffFrameFlag = sps0.mb_adaptive_frame_field_flag && (field_pic_flag == false);		
+		CurrMbAddr = first_mb_in_slice*((MbaffFrameFlag ? 1 : 0)+1);																// int conversion 
+		moreDataFlag = true;
+		prevMbSkipped = false;
+		while(moreDataFlag) {
+			if(!(slice_type == 2 || slice_type == 7) && 
+					!(slice_type == 4 || slice_type == 9)) {  					
+ 				if(! pps0.entropy_coding_mode_flag) {
+ 					int masla=p.pointer;
+					mb_skip_run = p.uev();
+					int endmasla=p.pointer;
+					int maslasize=endmasla-masla;
+					// System.out.println("size ! "+maslasize);
+					prevMbSkipped = (mb_skip_run > 0);// ? true : false;
+					for(int i = 0; i < mb_skip_run; i++) {
+						mbData.mb_type_="P_Skip";
+						MacroBlockData[CurrMbAddr]=mbData;
+						CurrMbAddr = NextMbAddress(CurrMbAddr);
+					}
+					if(mb_skip_run > 0) {
+						moreDataFlag = p.more_rbsp_data();
+						System.out.println(moreDataFlag +" skip mb in stream " + mb_skip_run);
+					}
+				} else {
+					System.out.println("Cabac implemetation required ");
+				}
+			}
+			if(moreDataFlag) {
+				System.out.println("flag of mb P_Skip "+prevMbSkipped);
+				if(MbaffFrameFlag && (CurrMbAddr % 2 == 0 ||
+					 (CurrMbAddr % 2 == 1 && prevMbSkipped))) {
+					System.out.println("came here in mb filed decoding flag");
+					mb_field_decoding_flag = p.getBit(); //
+					System.out.println("");
+				}
+				int start=p.pointer;
+				System.out.println("**************************************************");
+				System.out.println();
+				macroblock_layer(); 
+				int end = p.pointer;
+				x=scan.nextInt();
+				int size = end-start;
+				System.out.println("mb extracted "+ CurrMbAddr);
+				System.out.println("Size "+ size); 
+				System.out.println("*************************"+p.pointer+"*************************");
+	
+			}
+			if(! pps0.entropy_coding_mode_flag) {
+				moreDataFlag = p.more_rbsp_data();
+			} else {
+				System.out.println("implemetation required for cabac only");
+				 
+				if(!(slice_type == 2 || slice_type == 7) && 
+						!(slice_type == 4 || slice_type == 9)) {
+
+
+				}
+				if(MbaffFrameFlag && CurrMbAddr % 2 == 0){
+					moreDataFlag = true;
+
+				} else {
+				}	
+			}
+			CurrMbAddr = NextMbAddress(CurrMbAddr);
+
+		}
+		ToImage();
+	}
+	public void set_mb_type_table() {
+		if(slice_type % 5 == 2) {
+			mb_type_table = "table7.11.txt";
+		} else if(slice_type % 5 == 0) {
+			mb_type_table = "table7.13.txt";
+		}
+		// Some types implementation missing
+	}
+	public void macroblock_layer() {
+		int MbWidthC;
+		int MbHeightC;
+		if(sps0.chroma_format_idc==0||sps0.separate_colour_plane_flag){
+			MbWidthC=0;
+			MbHeightC=0;
+
+		}else{
+			MbWidthC=16/getSubWidthC();
+			MbHeightC=16/getSubHeightC();
+		}
+
+		mbRow=p.uev();
+		if(mbRow>4&&slice_type%5==0){
+			mbRow=mbRow%5;
+			mb_type_table="table7.11.txt";
+		}else if(mbRow<4&&slice_type%5==0){
+			mb_type_table="table7.13.txt";
+		}
+		System.out.println("mbRow ==> "+ mbRow);
+		mb_type=p.Mb_Type(mb_type_table ,mbRow,1);
+		System.out.println("mb type ==> "+mb_type);
+		String patLuma,patChroma;
+		if(mb_type_table.equals("table7.11.txt")){
+			patLuma=p.Mb_Type(mb_type_table,mbRow,6);
+			patChroma=p.Mb_Type(mb_type_table,mbRow,5);
+			CodedBlockPatternChroma=0;
+			CodedBlockPatternLuma=0;
+			if(patChroma.equals("Equation7-36")){
+				CodedBlockPatternLuma = (int)(coded_block_pattern %16);
+				CodedBlockPatternChroma = (int)(coded_block_pattern/16.0);
+			}else{
+				CodedBlockPatternChroma=Integer.parseInt(patChroma);
+				CodedBlockPatternLuma=Integer.parseInt(patLuma);
+			}
+		}
+		if(mb_type.equals("I_PCM")){
+			System.out.println("I_PCM mb extracted");
+			while(!p.byte_aligned()){
+				pcm_alignment_zero_bit=p.readBits(1);
+			}
+			pcm_sample_luma=new int[256];
+			BitDepthY = 8 + sps0.bit_depth_luma_minus8;
+
+			for(int i=0;i<256;i++){
+				pcm_sample_luma[i]=p.readBits(BitDepthY);
+			}
+
+			int pcm_sample_chroma_Size=2*MbWidthC*MbHeightC;
+			pcm_sample_chroma=new int[pcm_sample_chroma_Size];
+			
+			BitDepthC = 8 + sps0.bit_depth_chroma_minus8;
+			for(int i=0;i<pcm_sample_chroma_Size;i++){
+				pcm_sample_chroma[i]=p.readBits(BitDepthC);
+			}
+		}else {
+			noSubMbPartSizeLessThan8x8Flag=true;
+			if(!mb_type.equals("I_NxN")&& !MbPartPredMode(mbRow,0).equals("Intra_16x16")
+			&&NumMbPart(mbRow)==4){
+				System.out.println("sub_mb_pred unimplemented");
+				sub_mb_pred(mbRow);
+				for(int mbPartIdx=0;mbPartIdx<4;mbPartIdx++){
+					if(!sub_mb_type(mbPartIdx).equals("B_Direct_8x8")){
+						if(NumSubMbPart(sub_mb_type(mbPartIdx))>1){
+							noSubMbPartSizeLessThan8x8Flag=false;
+						}
+					}else if(!sps0.direct_8x8_inference_flag){
+						noSubMbPartSizeLessThan8x8Flag=false;
+					}
+				}
+			}else{
+				if(pps0.transform_8x8_mode_flag&& mb_type.equals("I_NxN")){
+					transform_size_8x8_flag=p.getBit();
+					System.out.println("transform_size_8x8_flag ");
+				}
+				mb_pred(mbRow);
+
+			}
+			if(!MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+				System.out.println("ChromaArrayType "+" "+ChromaArrayType);
+				if(slice_type%5==0){
+					if(mb_type_table.equals("table7.11.txt")){
+						coded_block_pattern=p.mev(1,ChromaArrayType);
+					}else{
+						coded_block_pattern=p.mev(0,ChromaArrayType);
+					}
+				}else if(slice_type%5==2){
+					coded_block_pattern=p.mev(1,ChromaArrayType);
+				}
+				System.out.println("coded_block_pattern "+coded_block_pattern);
+					CodedBlockPatternChroma=(int)(coded_block_pattern/16.0);
+					CodedBlockPatternLuma=(int)(coded_block_pattern%16.0);
+				if(CodedBlockPatternLuma>0 && pps0.transform_8x8_mode_flag
+					&&!mb_type.equals("I_NxN")
+					&&noSubMbPartSizeLessThan8x8Flag&&(!mb_type.equals("B_Direct_16x16")
+						||sps0.direct_8x8_inference_flag)){
+					transform_size_8x8_flag=p.getBit();
+				}
+			}
+			if(CodedBlockPatternLuma>0||CodedBlockPatternChroma>0||
+				MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+				mb_qp_delta=p.sev();
+				System.out.println("mb_qp_delta "+ mb_qp_delta);
+				if(mb_qp_delta!=0){
+					QPY=((QPY+mb_qp_delta+52+(2*QpBdOffsetY))%(52+QpBdOffsetY))-QpBdOffsetY;
+				}
+				System.out.println(" mb_qp_delta "+mb_qp_delta);
+				residual(0,15);
+				System.out.println("");
+				// transform_decoding_process_for_luma_samples_of_Intra_16x16();
+				// transform_decoding_process_for_chroma_samples();
+				mbData.mb_type_=mb_type;
+				MacroBlockData[CurrMbAddr]=mbData;
+			}
+		}
+		mbData.mb_type_=mb_type;
+		MacroBlockData[CurrMbAddr]=mbData;
+	}
+	public void mb_pred(int r){
+		if(!transform_size_8x8_flag&&r==0&&mb_type_table.equals("table7.11.txt")){
+			r=-1;
+		}
+		// System.out.println("call to mb_pred "+MbPartPredMode(r,0));
+		if(MbPartPredMode(r,0).equals("Intra_4x4")||
+			MbPartPredMode(r,0).equals("Intra_8x8")||
+			MbPartPredMode(r,0).equals("Intra_16x16")){
+			if(MbPartPredMode(r,0).equals("Intra_4x4")){
+				prev_intra4x4_pred_mode_flag=new boolean[16];
+				rem_intra4x4_pred_mode=new int [16];
+				for (luma4x4BlkIdx=0;luma4x4BlkIdx<16 ;luma4x4BlkIdx++ ) {
+					prev_intra4x4_pred_mode_flag[luma4x4BlkIdx]=p.getBit();
+					if(!prev_intra4x4_pred_mode_flag[luma4x4BlkIdx]){
+						rem_intra4x4_pred_mode[luma4x4BlkIdx]=p.readBits(3);
+					}else{
+						rem_intra4x4_pred_mode[luma4x4BlkIdx]=0;
+					}
+				}
+
+			}
+			if(MbPartPredMode(r,0).equals("Intra_8x8")){
+				prev_intra8x8_pred_mode_flag=new boolean[4];
+				rem_intra8x8_pred_mode=new int [4];
+				for (int luma8x8BlkIdx=0;luma8x8BlkIdx<4 ;luma8x8BlkIdx++ ) {
+					prev_intra8x8_pred_mode_flag[luma8x8BlkIdx]=p.getBit();
+					if(!prev_intra8x8_pred_mode_flag[luma8x8BlkIdx]){
+						rem_intra8x8_pred_mode[luma8x8BlkIdx]=p.readBits(3);
+					}else{
+						rem_intra8x8_pred_mode[luma8x8BlkIdx]=0;
+					}
+				}
+			}
+			if(ChromaArrayType==1||ChromaArrayType==2){
+				// System.out.println("chroma tyoe 1 or 2");
+				intra_chroma_pred_mode=p.uev();
+				System.out.println(intra_chroma_pred_mode+" intra_chroma_pred_mode ");
+			}
+		}else if(!MbPartPredMode(r,0).equals("Direct")){
+			ref_idx_l0=new int[NumMbPart(mbRow)];//tev
+			ref_idx_l1=new int[NumMbPart(mbRow)];//tev
+			mvd_l0=new int[NumMbPart(mbRow)][2][2];//sev
+			mvd_l1=new int[NumMbPart(mbRow)][2][2]; //sev
+			for(int mbPartIdx=0;mbPartIdx<NumMbPart(mbRow);mbPartIdx++){
+				if((num_ref_idx_l0_active_minus1>0||mb_field_decoding_flag!=field_pic_flag)&&
+				MbPartPredMode(mbRow,mbPartIdx).equals("Pred_L1")){
+					System.out.println("ref_idx_l0");
+					ref_idx_l0[mbPartIdx]=p.tev();	
+				}
+			}
+			for (int mbPartIdx=0;mbPartIdx<NumMbPart(mbRow) ;mbPartIdx++ ) {
+				if((num_ref_idx_l1_active_minus1>0||mb_field_decoding_flag!=field_pic_flag)&&
+					MbPartPredMode(mbRow,mbPartIdx).equals("Pred_L0")){
+					System.out.println("ref_idx_l1");
+
+					ref_idx_l1[mbPartIdx]=p.tev();
+				}
+			}
+			for (int mbPartIdx=0;mbPartIdx<NumMbPart(mbRow) ;mbPartIdx++ ) {
+				if(MbPartPredMode(mbRow,mbPartIdx).equals("Pred_L1")){
+					for(int compIdx=0;compIdx<2;compIdx++){
+						System.out.println("mvd_l0 "+mvd_l0[mbPartIdx][0][compIdx]);
+						mvd_l0[mbPartIdx][0][compIdx]=p.sev();
+					}
+				}
+			}
+
+			for (int mbPartIdx=0;mbPartIdx<NumMbPart(mbRow) ;mbPartIdx++ ) {
+				if(MbPartPredMode(mbRow,mbPartIdx).equals("Pred_L0")){
+					for(int compIdx=0;compIdx<2;compIdx++){
+						mvd_l1[mbPartIdx][0][compIdx]=p.sev();
+						System.out.println("mvd_l1 "+mvd_l1[mbPartIdx][0][compIdx]);
+					}
+				}
+			}
+		}
+	}
+
+	public int NextMbAddress(int n) { // used im slice data , taken from
+		// 8.2.2
+
+
+
+		//The variables PicHeightInMapUnits and PicSizeInMapUnits are derived as
+		// PicHeightInMapUnits = pic_height_in_map_units_minus1 + 1 (7-16)
+		// PicSizeInMapUnits = PicWidthInMbs * PicHeightInMapUnits
+		int PicSizeInMapUnits= (sps0.pic_width_in_mbs_minus_1+1)*(sps0.pic_height_in_map_units_minus_1+1);
+		// int FrameHeightInMbs = (2-(sps0.frame_mbs_only_flag ? 1:0))*(sps0.pic_height_in_map_units_minus_1+1);
+ 		// int PicHeightInMbs = FrameHeightInMbs / (1+(field_pic_flag ? 1:0));
+
+ 		int PicSizeInMbs = (sps0.pic_width_in_mbs_minus_1+1) * (PicHeightInMbs);
+		// (7-34)
+		int MapUnitsInSliceGroup0 = Math.min(((pps0.slice_group_change_rate_minus1 + 1) * slice_group_change_cycle), 
+			(PicSizeInMapUnits));
+		// System.out.println(MapUnitsInSliceGroup0);
+		int sizeOfUpperLeftGroup;
+		if(pps0.num_slice_groups_minus1==1&&(pps0.slice_group_map_type==4||pps0.slice_group_map_type==5)){
+
+			sizeOfUpperLeftGroup=(pps0.slice_group_change_direction_flag ? (PicSizeInMapUnits - MapUnitsInSliceGroup0)
+				: MapUnitsInSliceGroup0);
+		}
+		int [] mapUnitToSliceGroupMap=new int[PicSizeInMapUnits];
+		if(pps0.num_slice_groups_minus1==0){
+			// System.out.println("zero  ");
+			for(int i=0;i<pps0.pic_size_in_map_units_minus1+1;i++){
+				mapUnitToSliceGroupMap[i]=0;
+			}			
+		}
+
+		else if(pps0.num_slice_groups_minus1!=0){
+			if(pps0.slice_group_map_type==0){
+				// 8.2.2.1
+			}
+			else if(pps0.slice_group_map_type==1){
+				// 8.2.2.2
+			}else if(pps0.slice_group_map_type==2){
+				// 8.2.2.3
+			}else if(pps0.slice_group_map_type==3){
+				// 8.2.2.4
+			}else if(pps0.slice_group_map_type==4){
+				// 8.2.2.5
+			}
+			else if(pps0.slice_group_map_type==5){
+				// 8.2.2.6
+			}
+			else if(pps0.slice_group_map_type==6){
+				// 8.2.2.7
+			}
+		}
+
+
+									/* 8.2.2.8 */
+ 		int[] MbToSliceGroupMap=new int[PicSizeInMbs];
+ 		for(int i=0;i<PicSizeInMbs;i++){
+ 			if(sps0.frame_mbs_only_flag==true||field_pic_flag==true){
+ 				// System.out.println(PicSizeInMbs+" "+PicSizeInMapUnits);
+ 				MbToSliceGroupMap[i]=mapUnitToSliceGroupMap[i];
+ 			} else if(MbaffFrameFlag){
+ 				MbToSliceGroupMap[i]=mapUnitToSliceGroupMap[(int)i/2];
+
+ 			}else if(sps0.frame_mbs_only_flag==false&&sps0.mb_adaptive_frame_field_flag==false&&field_pic_flag==false){
+ 				MbToSliceGroupMap[i]=mapUnitToSliceGroupMap[(int)(i/(2*sps0.pic_width_in_mbs_minus_1+1))
+ 				*sps0.pic_width_in_mbs_minus_1+1+(i%sps0.pic_width_in_mbs_minus_1+1)];
+ 			}
+
+ 		}
+		// i = n + 1 
+		// while( i < PicSizeInMbs && MbToSliceGroupMap[ i ] != MbToSliceGroupMap[ n ] )
+		 // i++; 
+		// nextMbAddress = i
+		int i = n + 1;
+		// int nextMbAddress = i;
+
+		while(i<PicSizeInMbs &&( MbToSliceGroupMap[i]!=MbToSliceGroupMap[n])) {
+			i++;
+			// System.out.println("here   mb address");
+			// nextMbAddress = i;
+		}
+		// System.out.println("nextMbAddress "+i);
+		return i;
+	}
+
 	public void Intra_16x16_prediction_process_for_luma_samples(){
 		int x,y;
-		// x=-1;y=-1...15; mbaddrA
-		// x=0..15,y=-1; mbaddrB
 		int[] p_minus_x=new int[17];
 		boolean availableflagp_minus_x=false;
 		boolean availableflagp_minus_y=false;
 		int[] p_minus_y=new int[16];
-		String Intra16x16PredMode=p.Mb_Type("table7.11.txt",mbRow,4);
-		// System.out.println(Intra16x16PredMode+" mode == "+pps0.constrained_intra_pred_flag);
+		String Intra16x16PredMode=p.Mb_Type(mb_type_table,mbRow,4);
 		
 		for(y=-1;y<16;y++){
 			x=-1;
@@ -210,7 +714,6 @@ public class Slice{
 			if(MbaffFrameFlag){
 				p_minus_x[y+1]=SL[xm+xW][ym+2*yW];
 			}else{
-				// System.out.println("xm+xW][ym+yW"+ xW+" == "+yW);
 				p_minus_x[y+1]=SL[xm+xW][ym+yW];
 			}
 		}
@@ -319,10 +822,6 @@ public class Slice{
 
 
 		}
-		
-		
-
-
 	}
 	public void transform_decoding_process_for_chroma_samples(){
 		int MbWidthC;// = 16 / SubWidthC (6-1)
@@ -1101,262 +1600,7 @@ public class Slice{
 			}
 		}
 	
-	}
-	public void slice_header(){
-		first_mb_in_slice = p.uev();
-		slice_type = p.uev();
-		pic_parameter_set_id=p.uev();
-		if(sps0.separate_colour_plane_flag){
-			colour_plane_id=p.readBits(2);
-
-		}
-		int v = sps0.log2_max_frame_num_minus4;
-		frame_num=p.readBits(v+4);
-		if(nal0.nal_unit_type==5) {
-			IdrPicFlag=true;	
-		}else {
-			IdrPicFlag=false;
-		}
-		field_pic_flag=false;
-		if(!(sps0.frame_mbs_only_flag)){ 
-			field_pic_flag=p.getBit();
-			if(field_pic_flag){
-				bottom_field_flag=p.getBit();
-			}
-		}
-		if(IdrPicFlag){
-			idr_pic_id=p.uev();
-		}
-		if(sps0.pic_order_cnt_type==0){
-			int n=sps0.log2_max_pic_order_cnt_lsb_minus4+4; //
-			pic_order_cnt_lsb=p.readBits(n);
-			if (pps0.bottom_field_pic_order_in_frame_present_flag&&!field_pic_flag) {
-				delta_pic_order_cnt_bottom=p.sev();
-
-			}
-		}
-		delta_pic_order_cnt=new int[3]; // 
-		if(sps0.pic_order_cnt_type==1&&sps0.delta_pic_order_always_zero_flag){
-			delta_pic_order_cnt[0]=p.sev();
-		}
-		if(pps0.bottom_field_pic_order_in_frame_present_flag&&!field_pic_flag){
-			delta_pic_order_cnt[1]=p.sev();
-
-		}
-		if(pps0.redundant_pic_cnt_present_flag){
-			redundant_pic_cnt=p.uev();
-
-		}
-		if(slice_type==1||slice_type==6){
-			direct_spatial_mv_pred_flag=p.getBit();
-		}
-			// 0	P (P slice)
-			// 1	B (B slice)
-			// 2	I (I slice)
-			// 3	SP (SP slice)
-			// 4	SI (SI slice)
-			// 5	P (P slice)
-			// 6	B (B slice)
-			// 7	I (I slice)
-			// 8	SP (SP slice)
-			// 9	SI (SI slice)
-		if(slice_type==0||slice_type==5||slice_type==3||slice_type==8
-			||slice_type==6||slice_type==1){
-			num_ref_idx_active_override_flag=p.getBit();
-			if(num_ref_idx_active_override_flag){
-				num_ref_idx_l0_active_minus1=p.uev();
-				if(slice_type==1||slice_type==6){
-					num_ref_idx_l1_active_minus1=p.uev();
-
-				}
-			}
-		}
-		if(nal0.nal_unit_type==20||nal0.nal_unit_type==21){
-
-		}else{
-		}
-
-		if(pps0.weighted_pred_flag&&(slice_type==0||slice_type==5
-			||slice_type==3||slice_type==8)||(pps0.weighted_bipred_idc==1&&(slice_type==1 ||slice_type==6)
-			)){
-		}
-
-		if(nal0.nal_ref_idc!=0){
-			dec_ref_pic_marking();
-		}
-		if(pps0.entropy_coding_mode_flag&&slice_type!=7&&slice_type!=2&&slice_type!=4&&slice_type!=9){
-			cabac_init_idc=p.uev();	
-		}
-		slice_qp_delta=p.sev();
-
-		if(slice_type==3||slice_type==8||slice_type==4||slice_type==9){
-			if (slice_type==3||slice_type==8) {
-				sp_for_switch_flag=p.getBit();
-			}
-			slice_qs_delta=p.sev();
-		}
-		if (pps0.deblocking_filter_control_present_flag) {
-			disable_deblocking_filter_idc=p.uev();
-				slice_alpha_c0_offset_div2=p.sev();
-				slice_beta_offset_div2=p.sev();
-			}
-		slice_group_change_cycle=0;
-		if (pps0.num_slice_groups_minus1>0&&pps0.slice_group_map_type>=3&&pps0.slice_group_map_type<=5) {
-			int bits = (int)Math.ceil(Math.log((pps0.pic_size_in_map_units_minus1+1)/(pps0.slice_group_change_rate_minus1+1)+1));
-			slice_group_change_cycle=p.readBits(bits);
-		}
-		QPY = pps0.pic_init_qp_minus26+slice_qp_delta+26;
-	}
-	
-
-	public int NextMbAddress(int n) { // used im slice data , taken from
-		// 8.2.2
-
-
-
-		//The variables PicHeightInMapUnits and PicSizeInMapUnits are derived as
-		// PicHeightInMapUnits = pic_height_in_map_units_minus1 + 1 (7-16)
-		// PicSizeInMapUnits = PicWidthInMbs * PicHeightInMapUnits
-		int PicSizeInMapUnits= (sps0.pic_width_in_mbs_minus_1+1)*(sps0.pic_height_in_map_units_minus_1+1);
-		// int FrameHeightInMbs = (2-(sps0.frame_mbs_only_flag ? 1:0))*(sps0.pic_height_in_map_units_minus_1+1);
- 		// int PicHeightInMbs = FrameHeightInMbs / (1+(field_pic_flag ? 1:0));
-
- 		int PicSizeInMbs = (sps0.pic_width_in_mbs_minus_1+1) * (PicHeightInMbs);
-		// (7-34)
-		int MapUnitsInSliceGroup0 = Math.min(((pps0.slice_group_change_rate_minus1 + 1) * slice_group_change_cycle), 
-			(PicSizeInMapUnits));
-		// System.out.println(MapUnitsInSliceGroup0);
-		int sizeOfUpperLeftGroup;
-		if(pps0.num_slice_groups_minus1==1&&(pps0.slice_group_map_type==4||pps0.slice_group_map_type==5)){
-
-			sizeOfUpperLeftGroup=(pps0.slice_group_change_direction_flag ? (PicSizeInMapUnits - MapUnitsInSliceGroup0)
-				: MapUnitsInSliceGroup0);
-		}
-		int [] mapUnitToSliceGroupMap=new int[PicSizeInMapUnits];
-		if(pps0.num_slice_groups_minus1==0){
-			// System.out.println("zero  ");
-			for(int i=0;i<pps0.pic_size_in_map_units_minus1+1;i++){
-				mapUnitToSliceGroupMap[i]=0;
-			}			
-		}
-
-		else if(pps0.num_slice_groups_minus1!=0){
-			if(pps0.slice_group_map_type==0){
-				// 8.2.2.1
-			}
-			else if(pps0.slice_group_map_type==1){
-				// 8.2.2.2
-			}else if(pps0.slice_group_map_type==2){
-				// 8.2.2.3
-			}else if(pps0.slice_group_map_type==3){
-				// 8.2.2.4
-			}else if(pps0.slice_group_map_type==4){
-				// 8.2.2.5
-			}
-			else if(pps0.slice_group_map_type==5){
-				// 8.2.2.6
-			}
-			else if(pps0.slice_group_map_type==6){
-				// 8.2.2.7
-			}
-		}
-
-
-									/* 8.2.2.8 */
- 		int[] MbToSliceGroupMap=new int[PicSizeInMbs];
- 		for(int i=0;i<PicSizeInMbs;i++){
- 			if(sps0.frame_mbs_only_flag==true||field_pic_flag==true){
- 				// System.out.println(PicSizeInMbs+" "+PicSizeInMapUnits);
- 				MbToSliceGroupMap[i]=mapUnitToSliceGroupMap[i];
- 			} else if(MbaffFrameFlag){
- 				MbToSliceGroupMap[i]=mapUnitToSliceGroupMap[(int)i/2];
-
- 			}else if(sps0.frame_mbs_only_flag==false&&sps0.mb_adaptive_frame_field_flag==false&&field_pic_flag==false){
- 				MbToSliceGroupMap[i]=mapUnitToSliceGroupMap[(int)(i/(2*sps0.pic_width_in_mbs_minus_1+1))
- 				*sps0.pic_width_in_mbs_minus_1+1+(i%sps0.pic_width_in_mbs_minus_1+1)];
- 			}
-
- 		}
-		// i = n + 1 
-		// while( i < PicSizeInMbs && MbToSliceGroupMap[ i ] != MbToSliceGroupMap[ n ] )
-		 // i++; 
-		// nextMbAddress = i
-		int i = n + 1;
-		// int nextMbAddress = i;
-
-		while(i<PicSizeInMbs &&( MbToSliceGroupMap[i]!=MbToSliceGroupMap[n])) {
-			i++;
-			// System.out.println("here   mb address");
-			// nextMbAddress = i;
-		}
-		// System.out.println("nextMbAddress "+i);
-		return i;
-	}
-
-	public void slice_data() {
-		int counter=0;
-		if(pps0.entropy_coding_mode_flag) {
-			while(! p.byte_aligned()) {
-				cabac_alignment_one_bit = p.readBits(1);
-			}
-		}
-		MbaffFrameFlag = sps0.mb_adaptive_frame_field_flag && (field_pic_flag == false);		
-		CurrMbAddr = first_mb_in_slice * ( (MbaffFrameFlag ? 1 : 0) + 1 );																// int conversion 
-		moreDataFlag = true;
-		prevMbSkipped = false;
-		while(moreDataFlag) {
-			if(!(slice_type == 2 || slice_type == 7) && 
-					!(slice_type == 4 || slice_type == 9)) {  
-										
- 				if(! pps0.entropy_coding_mode_flag) {
-					mb_skip_run = p.uev();
-					prevMbSkipped = (mb_skip_run > 0);
-					for(int i = 0; i < mb_skip_run; i++) {
-						CurrMbAddr = NextMbAddress(CurrMbAddr);
-					}
-					if(mb_skip_run > 0) {
-						moreDataFlag = p.more_rbsp_data();
-						System.out.println("skip mb in stream");
-					}
-				} else {
-					}
-			}
-			if(moreDataFlag) {
-				if(MbaffFrameFlag && (CurrMbAddr % 2 == 0 ||
-					 (CurrMbAddr % 2 == 1 && prevMbSkipped))) {
-					mb_field_decoding_flag = p.getBit(); //
-				}
-				System.out.println("mb extracted "+ counter++);
-				System.out.println("************************ "+p.pointer+"**************************");
-				System.out.println();
-				macroblock_layer(); 
-				System.out.println(); 
-				System.out.println("************************ "+p.pointer+"**************************");
-				if(counter>1300){
-					Scanner scan= new Scanner(System.in);
-					System.out.println(" enter 1 to next block ");
-					int x=scan.nextInt();
-				}
-			}
-			if(! pps0.entropy_coding_mode_flag) {
-				moreDataFlag = p.more_rbsp_data();
-			} else {
-				 
-				if(!(slice_type == 2 || slice_type == 7) && 
-						!(slice_type == 4 || slice_type == 9)) {
-
-				}
-				if(MbaffFrameFlag && CurrMbAddr % 2 == 0){
-					moreDataFlag = true;
-
-				} else {
-				}	
-			}
-			CurrMbAddr = NextMbAddress(CurrMbAddr);
-
-		}
-		ToImage();
-	}
+	}	
 	public int getSubWidthC(){
 		if(sps0.chroma_format_idc==1&&!sps0.separate_colour_plane_flag){
 			return 2;
@@ -1381,7 +1625,13 @@ public class Slice{
 		return 0;
 	} 
 	public String MbPartPredMode(int mbType,int n){
-		String ret =p.Mb_Type("table7.11.txt",mbType,3);
+		String ret;
+		if(n==0){
+			ret =p.Mb_Type(mb_type_table,mbType,3);
+
+		}else{
+			ret =p.Mb_Type(mb_type_table,mbType,4);
+		}
 		return ret;
 	}
 
@@ -1750,189 +2000,19 @@ public class Slice{
 		System.out.println("implemetation sub_mb_type");
 		return"nill";
 	}
-	public void mb_pred(int r){
-		if(!transform_size_8x8_flag&&r==0){
-			r=-1;
-		}
-		// System.out.println("call to mb_pred "+MbPartPredMode(r,0));
-		if(MbPartPredMode(r,0).equals("Intra_4x4")||
-			MbPartPredMode(r,0).equals("Intra_8x8")||
-			MbPartPredMode(r,0).equals("Intra_16x16")){
-			if(MbPartPredMode(r,0).equals("Intra_4x4")){
-				prev_intra4x4_pred_mode_flag=new boolean[16];
-				rem_intra4x4_pred_mode=new int [16];
-				for (luma4x4BlkIdx=0;luma4x4BlkIdx<16 ;luma4x4BlkIdx++ ) {
-					prev_intra4x4_pred_mode_flag[luma4x4BlkIdx]=p.getBit();
-					if(!prev_intra4x4_pred_mode_flag[luma4x4BlkIdx]){
-						rem_intra4x4_pred_mode[luma4x4BlkIdx]=p.readBits(3);
-					}else{
-						rem_intra4x4_pred_mode[luma4x4BlkIdx]=0;
-					}
-				}
-
-			}
-			if(MbPartPredMode(r,0).equals("Intra_8x8")){
-				prev_intra8x8_pred_mode_flag=new boolean[4];
-				rem_intra8x8_pred_mode=new int [4];
-				for (int luma8x8BlkIdx=0;luma8x8BlkIdx<4 ;luma8x8BlkIdx++ ) {
-					prev_intra8x8_pred_mode_flag[luma8x8BlkIdx]=p.getBit();
-					if(!prev_intra8x8_pred_mode_flag[luma8x8BlkIdx]){
-						rem_intra8x8_pred_mode[luma8x8BlkIdx]=p.readBits(3);
-					}else{
-						rem_intra8x8_pred_mode[luma8x8BlkIdx]=0;
-					}
-				}
-			}
-			if(ChromaArrayType==1||ChromaArrayType==2){
-				// System.out.println("chroma tyoe 1 or 2");
-				intra_chroma_pred_mode=p.uev();
-				System.out.println(intra_chroma_pred_mode+" intra_chroma_pred_mode ");
-			}
-		}else if(!MbPartPredMode(r,0).equals("Direct")){
-			
-
-
-			// for(int mbPartIdx=0;
-			// 	){
-
-			// }
-
-			// ref_idx_l0
-			// System.out.println("akhri wali ");
-			System.out.println("end of func un implemented ");
-			// for(int mbPartIdx=0;mbPartIdx<NumMbPart(mb_type)){
-
-			}
-		}	
+		
 	// not for i slice
 	public int NumMbPart(int row){
-		String ret= p.Mb_Type("table7.13.txt",row,2);
-		System.out.println("implemetation NumMbPart required at line 684");
-		// return Integer.parseInt(ret);
-		return 0;
+		String ret= p.Mb_Type(mb_type_table,row,2);
+		// System.out.println("implemetation NumMbPart required at line 684");
+		return Integer.parseInt(ret);
+		// return ret;
 	}
-	public void sub_mb_pred(int mb_type){}// not for i slice
+	public void sub_mb_pred(int mb_type){
+		System.out.println("sub_mb_pred implemetation required");
+	}// not for i slice
 
-	public void macroblock_layer() {
-		int MbWidthC;
-		int MbHeightC;
-		if(sps0.chroma_format_idc==0||sps0.separate_colour_plane_flag){
-			MbWidthC=0;
-			MbHeightC=0;
-
-		}else{
-			MbWidthC=16/getSubWidthC();
-			MbHeightC=16/getSubHeightC();
-		}
-		mbRow=p.uev();
-		mb_type=p.Mb_Type("table7.11.txt",mbRow,1);
-		System.out.println("mb type ==> "+mb_type);
-		String patLuma,patChroma;
-		patLuma=p.Mb_Type("table7.11.txt",mbRow,6);
-		patChroma=p.Mb_Type("table7.11.txt",mbRow,5);
-		CodedBlockPatternChroma=0;
-		CodedBlockPatternLuma=0;
-		if(patChroma.equals("Equation7-36")){
-			CodedBlockPatternLuma = coded_block_pattern %16;
-			CodedBlockPatternChroma = (int)(coded_block_pattern/16.0);
-		}else{
-			CodedBlockPatternChroma=Integer.parseInt(patChroma);
-			CodedBlockPatternLuma=Integer.parseInt(patLuma);
-		}
-		if(mb_type.equals("I_PCM")){
-			while(!p.byte_aligned()){
-				pcm_alignment_zero_bit=p.readBits(1);
-			}
-			pcm_sample_luma=new int[256];
-			BitDepthY = 8 + sps0.bit_depth_luma_minus8;
-
-			for(int i=0;i<256;i++){
-				pcm_sample_luma[i]=p.readBits(BitDepthY);
-			}
-
-			int pcm_sample_chroma_Size=2*MbWidthC*MbHeightC;
-			pcm_sample_chroma=new int[pcm_sample_chroma_Size];
-			
-			BitDepthC = 8 + sps0.bit_depth_chroma_minus8;
-			for(int i=0;i<pcm_sample_chroma_Size;i++){
-				pcm_sample_chroma[i]=p.readBits(BitDepthC);
-			}
-		}else {
-			noSubMbPartSizeLessThan8x8Flag=true;
-			if(!mb_type.equals("I_NxN")&& !MbPartPredMode(mbRow,0).equals("Intra_16x16")
-			&&NumMbPart(mbRow)==4){
-				System.out.println("sub_mb_pred unimplemented");
-				sub_mb_pred(mbRow);
-				for(int mbPartIdx=0;mbPartIdx<4;mbPartIdx++){
-					if(!sub_mb_type(mbPartIdx).equals("B_Direct_8x8")){
-						if(NumSubMbPart(sub_mb_type(mbPartIdx))>1){
-							noSubMbPartSizeLessThan8x8Flag=false;
-						}
-					}else if(!sps0.direct_8x8_inference_flag){
-						noSubMbPartSizeLessThan8x8Flag=false;
-					}
-				}
-			}else{
-
-
-				if(pps0.transform_8x8_mode_flag&& mb_type.equals("I_NxN")){
-					transform_size_8x8_flag=p.getBit();
-				}
-				mb_pred(mbRow);
-			}
-			if(!MbPartPredMode(mbRow,0).equals("Intra_16x16")){
-				System.out.println("ChromaArrayType "+" "+ChromaArrayType);
-				coded_block_pattern=p.mev(1,ChromaArrayType);
-			
-				if(patChroma.equals("Equation7-36")){
-					System.out.println("CodedBlockPatternLuma");
-					CodedBlockPatternChroma=(int)(coded_block_pattern/16.0);
-					CodedBlockPatternLuma=(int)(coded_block_pattern%16.0);
-				}else{
-					CodedBlockPatternChroma=Integer.parseInt(patChroma);
-					CodedBlockPatternLuma=Integer.parseInt(patLuma);
-				}
-				if(CodedBlockPatternLuma>0&&pps0.transform_8x8_mode_flag
-					&&!mb_type.equals("I_NxN")
-					&&noSubMbPartSizeLessThan8x8Flag&&(!mb_type.equals("B_Direct_16x16")
-						||sps0.direct_8x8_inference_flag)){
-					transform_size_8x8_flag=p.getBit();
-				}
-			}
-
-			if(CodedBlockPatternLuma>0||CodedBlockPatternChroma>0||
-				MbPartPredMode(mbRow,0).equals("Intra_16x16")){
-				mb_qp_delta=p.sev();
-				if(mb_qp_delta!=0){
-					QPY=((QPY+mb_qp_delta+52+(2*QpBdOffsetY))%(52+QpBdOffsetY))-QpBdOffsetY;
-
-				}
-				residual(0,15);
-				transform_decoding_process_for_luma_samples_of_Intra_16x16();
-				transform_decoding_process_for_chroma_samples();
-				mbData.mb_type_=mb_type;
-				MacroBlockData[CurrMbAddr]=mbData;
-					for(int j=0;j<16;j++){
-
-				}
-
-				for(int j=0;j<16;j++){
-					
-
-				}
-
-				for(int j=0;j<16;j++){
-					}
-
-
-
-			}
-
-		}
-		mbData.mb_type_=mb_type;
-
-		MacroBlockData[CurrMbAddr]=mbData;
-	}
+	
 
 
 
