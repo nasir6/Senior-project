@@ -136,7 +136,8 @@ public class Slice{
 	int PicHeightInMbs;
 	int FrameHeightInMbs;
 	int [][] predL;
-
+	int MbWidthC;
+	int MbHeightC;
 
 	// Referene picture list modification variables 
 	boolean ref_pic_list_modification_flag_l0;
@@ -343,8 +344,11 @@ public class Slice{
 					// System.out.println("size ! "+maslasize);
 					prevMbSkipped = (mb_skip_run > 0);// ? true : false;
 					for(int i = 0; i < mb_skip_run; i++) {
+						mbData=new MacroBlock();
 						mbData.mb_type_="P_Skip";
 						MacroBlockData[CurrMbAddr]=mbData;
+						// System.out.println("CurrMbAddr "+CurrMbAddr);
+
 						CurrMbAddr = NextMbAddress(CurrMbAddr);
 					}
 					if(mb_skip_run > 0) {
@@ -366,13 +370,20 @@ public class Slice{
 				int start=p.pointer;
 				System.out.println("**************************************************");
 				System.out.println();
-				macroblock_layer(); 
-				int end = p.pointer;
-				x=scan.nextInt();
-				int size = end-start;
 				System.out.println("mb extracted "+ CurrMbAddr);
+				mbData=new MacroBlock();
+				macroblock_layer();
+				// for (int i=0;i<CurrMbAddr+1 ;i++ ) {
+				// 	System.out.print(" "+i+" "+MacroBlockData[i].mb_type_);
+					
+				// }
+				int end = p.pointer;
+				int size = end-start;
 				System.out.println("Size "+ size); 
+
 				System.out.println("*************************"+p.pointer+"*************************");
+				x=scan.nextInt();
+
 	
 			}
 			if(! pps0.entropy_coding_mode_flag) {
@@ -404,9 +415,44 @@ public class Slice{
 		}
 		// Some types implementation missing
 	}
+	public void transform_decoding_process_for_4x4_luma_residual_blocks(){
+		if(!transform_size_8x8_flag){
+			for(int luma4x4BlkIdx=0;luma4x4BlkIdx<16;luma4x4BlkIdx++){
+				// System.out.println("********* "+luma4x4BlkIdx+1+ " *************");
+				int [][]c=new int[4][4];
+				c=Inverse_zigzag_process(LumaLevel4x4[luma4x4BlkIdx]);
+				int [][]r=Scaling_and_transformation_process(c);
+				// for(int i=0;i<4;i++){
+					// System.out.println();
+					// for (int j=0;j<16 ;j++ ){
+						// System.out.print(" "+LumaLevel4x4[j]);						
+					// }
+				// }
+				// System.out.println();
+				// System.out.println();
+				// for(int i=0;i<4;i++){
+				// 	System.out.println();
+				// 	for (int j=0;j<4 ;j++ ){
+				// 		System.out.print(" "+r[i][j]);						
+				// 	}
+				// }
+				
+				// System.out.println();
+				
+				// step 3
+				if(TransformBypassModeFlag&&MbPartPredMode(mbRow,0).equals("Intra_4x4")){
+					// &&(Intra4x4PredMode[luma4x4BlkIdx]==0||Intra4x4PredMode[luma4x4BlkIdx]==1)){
+					// invoke process 8.5.15
+					System.out.println("implemetation required for 8.5.15");
+
+				}
+
+			}
+		}
+	}
+
 	public void macroblock_layer() {
-		int MbWidthC;
-		int MbHeightC;
+		
 		if(sps0.chroma_format_idc==0||sps0.separate_colour_plane_flag){
 			MbWidthC=0;
 			MbHeightC=0;
@@ -415,15 +461,17 @@ public class Slice{
 			MbWidthC=16/getSubWidthC();
 			MbHeightC=16/getSubHeightC();
 		}
+		// System.out.println("MbWidthC "+MbWidthC+" MbHeightC "+MbHeightC);
 
 		mbRow=p.uev();
+		// System.out.println("mbRow "+mbRow);
 		if(mbRow>4&&slice_type%5==0){
-			mbRow=mbRow%5;
+			mbRow=mbRow-5;
 			mb_type_table="table7.11.txt";
 		}else if(mbRow<4&&slice_type%5==0){
 			mb_type_table="table7.13.txt";
 		}
-		System.out.println("mbRow ==> "+ mbRow);
+		// System.out.println("mbRow ==> "+ mbRow);
 		mb_type=p.Mb_Type(mb_type_table ,mbRow,1);
 		System.out.println("mb type ==> "+mb_type);
 		String patLuma,patChroma;
@@ -483,7 +531,7 @@ public class Slice{
 
 			}
 			if(!MbPartPredMode(mbRow,0).equals("Intra_16x16")){
-				System.out.println("ChromaArrayType "+" "+ChromaArrayType);
+				// System.out.println("ChromaArrayType "+" "+ChromaArrayType);
 				if(slice_type%5==0){
 					if(mb_type_table.equals("table7.11.txt")){
 						coded_block_pattern=p.mev(1,ChromaArrayType);
@@ -493,7 +541,7 @@ public class Slice{
 				}else if(slice_type%5==2){
 					coded_block_pattern=p.mev(1,ChromaArrayType);
 				}
-				System.out.println("coded_block_pattern "+coded_block_pattern);
+				// System.out.println("coded_block_pattern "+coded_block_pattern);
 					CodedBlockPatternChroma=(int)(coded_block_pattern/16.0);
 					CodedBlockPatternLuma=(int)(coded_block_pattern%16.0);
 				if(CodedBlockPatternLuma>0 && pps0.transform_8x8_mode_flag
@@ -506,13 +554,21 @@ public class Slice{
 			if(CodedBlockPatternLuma>0||CodedBlockPatternChroma>0||
 				MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 				mb_qp_delta=p.sev();
-				System.out.println("mb_qp_delta "+ mb_qp_delta);
+				// System.out.println("mb_qp_delta "+ mb_qp_delta);
 				if(mb_qp_delta!=0){
 					QPY=((QPY+mb_qp_delta+52+(2*QpBdOffsetY))%(52+QpBdOffsetY))-QpBdOffsetY;
 				}
-				System.out.println(" mb_qp_delta "+mb_qp_delta);
+				// System.out.println(" mb_qp_delta "+mb_qp_delta+"qpy "+QPY);
 				residual(0,15);
-				System.out.println("");
+				// System.out.println("");
+				// System.out.println(MbPartPredMode(mbRow,0).equals("Intra_4x4"));
+				if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+					transform_decoding_process_for_luma_samples_of_Intra_16x16();
+				// }else if(MbPartPredMode(mbRow,0).equals("Intra_4x4")){
+				}else{
+					// System.out.println("4x4 construction ");
+					transform_decoding_process_for_4x4_luma_residual_blocks();
+				}
 				// transform_decoding_process_for_luma_samples_of_Intra_16x16();
 				// transform_decoding_process_for_chroma_samples();
 				mbData.mb_type_=mb_type;
@@ -520,7 +576,10 @@ public class Slice{
 			}
 		}
 		mbData.mb_type_=mb_type;
+
 		MacroBlockData[CurrMbAddr]=mbData;
+		// System.out.println("CurrMbAddr "+CurrMbAddr+" "+MacroBlockData[CurrMbAddr].mb_type_);
+
 	}
 	public void mb_pred(int r){
 		if(!transform_size_8x8_flag&&r==0&&mb_type_table.equals("table7.11.txt")){
@@ -558,7 +617,7 @@ public class Slice{
 			if(ChromaArrayType==1||ChromaArrayType==2){
 				// System.out.println("chroma tyoe 1 or 2");
 				intra_chroma_pred_mode=p.uev();
-				System.out.println(intra_chroma_pred_mode+" intra_chroma_pred_mode ");
+				// System.out.println(intra_chroma_pred_mode+" intra_chroma_pred_mode ");
 			}
 		}else if(!MbPartPredMode(r,0).equals("Direct")){
 			ref_idx_l0=new int[NumMbPart(mbRow)];//tev
@@ -889,7 +948,11 @@ public class Slice{
 		{14,23,18},
 		{16,25,20},
 		{18,29,23}};
-		mbIsInterFlag=false;
+		if(mb_type_table.equals("table7.13.txt")){
+			mbIsInterFlag=true;
+		}else{
+			mbIsInterFlag=false;
+		}
 		int iYCbCr;
 		if(sps0.separate_colour_plane_flag){
 			iYCbCr=colour_plane_id;
@@ -928,16 +991,24 @@ public class Slice{
 	int [][] Scaling_and_transformation_process(int [][] c){
 
 		BitDepth=8+sps0.bit_depth_luma_minus8;
-		sMbFlag=false;
+		// sMbFlag=false;
+		// System.out.println("slice_type "+slice_type);
+		if(slice_type%5==4||(slice_type%5==3&&mb_type_table.equals("table7.13.txt"))){
+			sMbFlag=true;
+		}else{
+			sMbFlag=false;
+		}
+		// System.out.println("sMbFlag "+sMbFlag);
 		if(!sMbFlag){
 			QpBdOffsetY=6*sps0.bit_depth_luma_minus8;
 			// QPY=((QPY+mb_qp_delta+52+2*QpBdOffsetY)%(52+QpBdOffsetY))-QpBdOffsetY;
 			qp=QPY+QpBdOffsetY;
 		}else{
 			// qp=qsy
-			// int QSY =26+pps0.pic_init_qs_minus26+slice_qs_delta;
-			// qp=QSY;
+			int QSY =26+pps0.pic_init_qs_minus26+slice_qs_delta;
+			qp=QSY;
 		}
+		// System.out.println("qp "+qp);
 		if(sps0.qpprime_y_zero_transform_bypass_flag&&QPY+QpBdOffsetY==0){
 			TransformBypassModeFlag=true;
 		}else if(!sps0.qpprime_y_zero_transform_bypass_flag||QPY+QpBdOffsetY!=0){
@@ -953,21 +1024,24 @@ public class Slice{
 				}
 			}
 		} else if(!TransformBypassModeFlag){
+			// Transformation Inveers
 			// clause 8.5.12.1
 			int [][] d=new int [4][4];
 			for(int i=0;i<4 ;i++){
+				// System.out.println();
 				for(int j=0;j<4;j++){
-					if(i==0&&j==0){
+					if(i==0&&j==0&&MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 						d[i][j]=c[i][j];
+						// System.out.println("true Intra_16x16");
 							// System.out.print(c[i][j]+" ");
 						
 					}else{
 						if(qp>=24){
-							d[i][j]=(c[i][j]*LevelScale4x4(qp%6,i,j))<<((qp/6) -4);
+							d[i][j]=(c[i][j]*LevelScale4x4(qp%6,i,j))<<((int)(qp/6)-4);
 							// System.out.print(c[i][j]+" ");
 
 						}else{
-							d[i][j]=(int)(c[i][j]*LevelScale4x4(qp%6,i,j)+Math.pow(2,(3-qp/6)))>>(int)(4-(qp/6));
+							d[i][j]=(int)(c[i][j]*LevelScale4x4(qp%6,i,j)+Math.pow(2,(3-(int)(qp/6))))>>(int)(4-(int)(qp/6));
 							// System.out.print(d[i][j]+" ");
 
 						}
@@ -982,6 +1056,8 @@ public class Slice{
 			// 	System.out.println();
 			// }
 			// clause 8.5.12.2
+			// Transformation process for residual 4x4 blocks
+
 			int [][] e=new int[4][4];
 			int [][] h= new int[4][4];
 			for(int i=0;i<4;i++){
@@ -994,7 +1070,7 @@ public class Slice{
 				e[i][2]=(d[i][1]>>1) - d[i][3];
 			}
 			for(int i=0;i<4;i++){
-				e[i][3]=d[i][1]+d[i][3]>>1;
+				e[i][3]=d[i][1]+(d[i][3]>>1);
 			}
 			int[][] f=new int[4][4];
 			for(int i=0;i<4;i++){
@@ -1042,7 +1118,7 @@ public class Slice{
 			for(int i=0;i<4 ;i++){
 				for(int j=0;j<4;j++){
 					// System.out.println(h[i][j]+" ");
-					r[i][j]=(int)(h[i][j]+Math.pow(2,5))>>6;
+					r[i][j]=((h[i][j]+32)>>6);
 					// System.out.print(" "+r[i][j]);
 				}
 			}
@@ -1216,6 +1292,11 @@ public class Slice{
 	public void transform_decoding_process_for_luma_samples_of_Intra_16x16(){
 		Intra_16x16_prediction_process_for_luma_samples();
 		// 1
+		// for(int x=0;x<16;x++){
+		// 	for(int y=0;y<16;y++){
+		// 		predL[x][y]=(1<<(BitDepthY-1));
+		// 	}
+		// }
 		int [][] c,r;
 		int [][]dcy;
 		c=Inverse_zigzag_process(Intra16x16DCLevel);
@@ -1230,12 +1311,20 @@ public class Slice{
 			lumaList[0]=dcy[indexes[0]][indexes[1]];
 			int count=0;
 			for(int k=1;k<16;k++){
-				lumaList[k]=Intra16x16ACLevel[luma4x4BlkIdx][k-1];
-				if(lumaList[k]!=0){
-					count++;
+				if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
+					lumaList[k]=Intra16x16ACLevel[luma4x4BlkIdx][k-1];
+					if(lumaList[k]!=0){
+						count++;
+					}
+				}else{
+				// }else if(MbPartPredMode(mbRow,0).equals("Intra_4x4")){
+					lumaList[k]=LumaLevel4x4[luma4x4BlkIdx][k-1];
+					if(lumaList[k]!=0){
+						count++;
+					}
 				}
 			}
-			mbData.luma4x4blk[luma4x4BlkIdx]=count;
+			// mbData.luma4x4blk[luma4x4BlkIdx]=count;
 			c=Inverse_zigzag_process(lumaList);
 			r=Scaling_and_transformation_process(c);
 			int []ret = Inverse_4x4_luma_block_scanning_process(luma4x4BlkIdx);
@@ -1251,8 +1340,9 @@ public class Slice{
 					// System.out.print(r[x][y]+" ");
 				}
 			}
+			// System.out.println();
 		}
-
+		// return;
 		// 3
 		if(TransformBypassModeFlag){
 			System.out.println("******** implement here ");
@@ -1260,9 +1350,10 @@ public class Slice{
 		// 4
 		int [][]u=new int [16][16];
 		for(int x=0;x<16;x++){
+			System.out.println();
 			for(int y=0;y<16;y++){
 				u[x][y]=clip1y(predL[y][x]+rMB[y][x]);
-				// System.out.print(" "+u[x][y]);
+				System.out.print(" "+u[x][y]);
 			}
 		}
 		// 5
@@ -1540,10 +1631,7 @@ public class Slice{
 		// 	}
 		for (int i=0;i<4 ;i++ ) {
 			for (int j=0;j<4 ;j++ ) {
-				// dcy[i][j]=c[i][j];
-				// System.out.print(" " +dcy[i][j]);
 			}
-			// System.out.println();
 		}
 		return dcy;
 	}
@@ -1637,7 +1725,7 @@ public class Slice{
 
 	public void Derivation_process_for_neighbouring_macroblock_addresses_and_their_availability(){
 		mbAddrA=CurrMbAddr-1;
-		if(CurrMbAddr%PicWidthInMbs==0){
+		if((CurrMbAddr%PicWidthInMbs==0)){
 			mbAddrA=CurrMbAddr;
 			availableFlagA=false;
 		}else if(mbAddrA < 0||mbAddrA>CurrMbAddr){
@@ -1670,7 +1758,6 @@ public class Slice{
 		// blkB=mbAddrB/luma4x4BlkIdxB;
 	}
 
-	// 9.2.1
 	public void Derivation_process_for_neighbouring_4x4_luma_blocks(){
 		maxW= 16;
 		maxH =16;
@@ -1678,6 +1765,7 @@ public class Slice{
 		luma4x4BlkIdxA=8*(yW/8)+4*(xW/8)+2*((yW%8)/4)+((xW %8)/4);
 		Derivation_process_for_neighbouring_locations(xB,yB);
 		luma4x4BlkIdxB=8*(yW/8)+4*(xW/8)+2*((yW%8)/4)+((xW %8)/4);
+
 	}
 	public void setnC(int mode){
 		availableFlagA=true;
@@ -1690,82 +1778,185 @@ public class Slice{
 			InverseRasterScan(luma4x4BlkIdx%4,4,4,8,0);
 			int y=InverseRasterScan(luma4x4BlkIdx/4,8,8,16,1)+
 			InverseRasterScan(luma4x4BlkIdx%4,4,4,8,1);
-			// int xA,yA,xB,yB;
 			xA=x-1;
 			yA=y+0;
 			xB=x+0;
 			yB=y-1;
 			Derivation_process_for_neighbouring_4x4_luma_blocks();
-			Derivation_process_for_neighbouring_macroblock_addresses_and_their_availability();
-			
+			Derivation_process_for_neighbouring_macroblock_addresses_and_their_availability();	
+			if(xA<0&&yA<0){
+				mbAddrA=mbAddrD;
 
-
-
-			
+			}else if(xA<0 &&(yA>=0&&yA<=maxH-1)){
+				mbAddrA=mbAddrA;
+			}else if((xA>=0&&xA<=maxW-1) &&yA<0){
+				mbAddrA=mbAddrB;
+			}else if((xA>=0&&xA<=maxW-1) && (yA>=0&&yA<=maxH-1)){
+				mbAddrA=CurrMbAddr;
+			}else if((xA>maxW-1&&yA<0)){
+				mbAddrA=mbAddrC;
+			}else if(xA>maxW-1&&(yA>=0&&yA<=maxH-1)){
+				availableFlagA=false;
+			}else if(yA>maxH-1){
+				availableFlagA=false;
+			}
+			if(xB<0&&yB<0){
+				mbAddrB=mbAddrD;
+			}else if(xB<0 &&(yB>=0&&yB<=maxH-1)){
+				mbAddrB=mbAddrA;
+			}else if((xB>=0&&xB<=maxW-1) &&yB<0){
+				mbAddrB=mbAddrB;
+			}else if((xB>=0&&xB<=maxW-1) && (yB>=0&&yB<=maxH-1)){
+				mbAddrB=CurrMbAddr;
+			}else if((xB>maxW-1&&yB<0)){
+				mbAddrB=mbAddrC;
+			}else if(xB>maxW-1&&(yB>=0&&yB<=maxH-1)){
+				availableFlagB=false;
+			}else if(yB>maxH-1){
+				availableFlagB=false;
+			}
 			if(pps0.constrained_intra_pred_flag){
 				availableFlagA=false;
 				availableFlagB=false;
 				availableFlagC=false;
 				availableFlagD=false;
 			}
-			// System.out.println(" curr "+CurrMbAddr+" " + " a "+mbAddrA+"  b  "+mbAddrB+" blk "+ luma4x4BlkIdx +" "+luma4x4BlkIdxA+" "+luma4x4BlkIdxB);
-			if(availableFlagA){
-				// System.out.println(MacroBlockData[mbAddrA].mb_type_+ " tyoe");
+			// if(MbPartPredMode(mbRow,0).indexOf("Intra")!=-1){
+			// 	availableFlagA=false;
+			// 	availableFlagB=false;
+			// 	availableFlagC=false;
+			// 	availableFlagD=false;
+				
+			// }
+			// if(pps0.constrained_intra_pred_flag){
 
-				if(MacroBlockData[mbAddrA].mb_type_.equals("P_Skip")||MacroBlockData[mbAddrA].mb_type_.equals("B_Skip")){
-					nA=0;
-				}else if(MacroBlockData[mbAddrA].mb_type_.equals("I_PCM")){
-					nA=16;
+			// }
+			if(availableFlagA){
+				if(mbAddrA==CurrMbAddr){
+					nA=mbData.luma4x4blk[luma4x4BlkIdxA];
 				}else{
-					nA=MacroBlockData[mbAddrA].luma4x4blk[luma4x4BlkIdxA];
-					// nA=MacroBlockData.get(mbAddrA).TotalCoeff_-1;
-					// nA=0;
+					if(MacroBlockData[mbAddrA].mb_type_.equals("P_Skip")||MacroBlockData[mbAddrA].mb_type_.equals("B_Skip")){
+						nA=0;
+						// availableFlagA=false;
+					}else if(!MacroBlockData[mbAddrA].mb_type_.equals("I_PCM")&&MacroBlockData[mbAddrA].luma4x4blk[luma4x4BlkIdxA]==0){
+						nA=0;
+						System.out.println("nA "+nA+" luma4x4BlkIdxA "+luma4x4BlkIdxA);
+					}else if(MacroBlockData[mbAddrA].mb_type_.equals("I_PCM")){
+						nA=16;
+					}
+					else
+					{
+						nA=MacroBlockData[mbAddrA].luma4x4blk[luma4x4BlkIdxA];
+					}
+						System.out.println("nA "+nA+" luma4x4BlkIdxA "+luma4x4BlkIdxA);
 				}
 			}
 			if(availableFlagB){
-				if(MacroBlockData[mbAddrB].mb_type_.equals("P_Skip")||MacroBlockData[mbAddrB].mb_type_.equals("B_Skip")){
-					nB=0;
-				}else if(MacroBlockData[mbAddrB].mb_type_.equals("I_PCM")){
-					nB=16;
+				if(mbAddrB==CurrMbAddr){
+					nB=mbData.luma4x4blk[luma4x4BlkIdxB];
 				}else{
-					nB=MacroBlockData[mbAddrB].luma4x4blk[luma4x4BlkIdxB];
+				// System.out.println("mbAddrB "+mbAddrB+" "+MacroBlockData[mbAddrB].mb_type_);
+				// System.out.println("availableFlagB "+MacroBlockData[mbAddrB].mb_type_+ " tyoe");
+					if(MacroBlockData[mbAddrB].mb_type_.equals("P_Skip")||MacroBlockData[mbAddrB].mb_type_.equals("B_Skip")){
+						// availableFlagB=false;
+						nB=0;
+					}else if(!MacroBlockData[mbAddrB].mb_type_.equals("I_PCM")&&MacroBlockData[mbAddrB].luma4x4blk[luma4x4BlkIdxB]==0){
+						nB=0;
+						// System.out.println("nB "+nB+" luma4x4BlkIdxB "+luma4x4BlkIdxB);
+
+						
+					}else if(MacroBlockData[mbAddrB].mb_type_.equals("I_PCM")){
+						nB=16;
+					}else{
+						nB=MacroBlockData[mbAddrB].luma4x4blk[luma4x4BlkIdxB];
+
+						}
+
+					// System.out.println("nB "+nB+" luma4x4BlkIdxB "+luma4x4BlkIdxB);
 					// nB=0;
 				}
+				// System.out.println("nB "+nB);
 			}
+			// System.out.println(availableFlagA+" flag "+availableFlagB);
 			if(availableFlagA&&availableFlagB){
-				nC=(1+nA+nB)>>1;
+				// System.out.println("both true "+nA+" "+nB);
+				nC=(int)((1+nA+nB)>>1);
 			}else if(availableFlagA&&!availableFlagB){
+				// System.out.println("nA true");
 				nC=nA;
 			}else if(!availableFlagA&&availableFlagB){
 				nC=nB;
+				// System.out.println("nB true");
 			}else{
 				nC=0;
 			}
 
 			p.nC=nC;
-			// System.out.println("nC "+p.nC);
+			System.out.println("nC "+p.nC);
 		}else if(mode==3){
 			Derivation_process_for_neighbouring_4x4_chroma_blocks();
 			Derivation_process_for_neighbouring_macroblock_addresses_and_their_availability();
+			if(xA<0&&yA<0){
+				mbAddrA=mbAddrD;
+
+			}else if(xA<0 &&(yA>=0&&yA<=maxH-1)){
+				mbAddrA=mbAddrA;
+			}else if((xA>=0&&xA<=maxW-1) &&yA<0){
+				mbAddrA=mbAddrB;
+			}else if((xA>=0&&xA<=maxW-1) && (yA>=0&&yA<=maxH-1)){
+				mbAddrA=CurrMbAddr;
+			}else if((xA>maxW-1&&yA<0)){
+				mbAddrA=mbAddrC;
+			}else if(xA>maxW-1&&(yA>=0&&yA<=maxH-1)){
+				availableFlagA=false;
+			}else if(yA>maxH-1){
+				availableFlagA=false;
+			}
+			if(xB<0&&yB<0){
+				mbAddrB=mbAddrD;
+			}else if(xB<0 &&(yB>=0&&yB<=maxH-1)){
+				mbAddrB=mbAddrA;
+			}else if((xB>=0&&xB<=maxW-1) &&yB<0){
+				mbAddrB=mbAddrB;
+			}else if((xB>=0&&xB<=maxW-1) && (yB>=0&&yB<=maxH-1)){
+				mbAddrB=CurrMbAddr;
+			}else if((xB>maxW-1&&yB<0)){
+				mbAddrB=mbAddrC;
+			}else if(xB>maxW-1&&(yB>=0&&yB<=maxH-1)){
+				availableFlagB=false;
+			}else if(yB>maxH-1){
+				availableFlagB=false;
+			}
+			System.out.println("maxh "+maxH+"maxW "+maxW);
+			// System.out.println("luma4x4BlkIdxA "+ luma4x4BlkIdxA+" mbAddrA "+mbAddrA+""+);
+			
 			if(availableFlagA){
-				if(MacroBlockData[mbAddrA].mb_type_.equals("P_Skip")||MacroBlockData[mbAddrA].mb_type_.equals("B_Skip")){
-					nA=0;
-				}else if(MacroBlockData[mbAddrA].mb_type_.equals("I_PCM")){
-					nA=16;
+				if(mbAddrA==CurrMbAddr){
+					nA=mbData.cbcr4x4blk[iCbCr][chroma4x4BlkIdxA];
 				}else{
-					nA=MacroBlockData[mbAddrA].cbcr4x4blk[iCbCr][luma4x4BlkIdxA];
-					// nA=MacroBlockData.get(mbAddrA).TotalCoeff_-1;
-					// nA=0;
+					if(MacroBlockData[mbAddrA].mb_type_.equals("P_Skip")||MacroBlockData[mbAddrA].mb_type_.equals("B_Skip")){
+						nA=0;
+					}else if(MacroBlockData[mbAddrA].mb_type_.equals("I_PCM")){
+						nA=16;
+					}else{
+						nA=MacroBlockData[mbAddrA].cbcr4x4blk[iCbCr][chroma4x4BlkIdxA];
+						// nA=MacroBlockData.get(mbAddrA).TotalCoeff_-1;
+						// nA=0;
+					}
 				}
 			}
 			if(availableFlagB){
-				if(MacroBlockData[mbAddrB].mb_type_.equals("P_Skip")||MacroBlockData[mbAddrB].mb_type_.equals("B_Skip")){
-					nB=0;
-				}else if(MacroBlockData[mbAddrB].mb_type_.equals("I_PCM")){
-					nB=16;
+				if(mbAddrB==CurrMbAddr){
+					nB=mbData.cbcr4x4blk[iCbCr][chroma4x4BlkIdxB];
 				}else{
-					nB=MacroBlockData[mbAddrB].cbcr4x4blk[iCbCr][luma4x4BlkIdxB];
-					// nB=0;
+					if(MacroBlockData[mbAddrB].mb_type_.equals("P_Skip")||MacroBlockData[mbAddrB].mb_type_.equals("B_Skip")){
+						nB=0;
+					}else if(MacroBlockData[mbAddrB].mb_type_.equals("I_PCM")){
+						nB=16;
+					}else{
+						nB=MacroBlockData[mbAddrB].cbcr4x4blk[iCbCr][chroma4x4BlkIdxB];
+						// nB=0;
+					}
 				}
 			}
 			if(availableFlagA&&availableFlagB){
@@ -1778,12 +1969,15 @@ public class Slice{
 				nC=0;
 			}
 			// nC=0;
+			System.out.println("mode 3  ==>  "+nC);
+
 		}
 		p.nC=nC;
-		System.out.println("nC     ====>   "+nC);
+		// System.out.println("nC     ====>   "+nC);
 
 
 	}
+
 	public void Derivation_process_for_neighbouring_4x4_chroma_blocks(){
 		int x = InverseRasterScan(chroma4x4BlkIdx,4,4,8,0);
 		int y = InverseRasterScan(chroma4x4BlkIdx,4,4,8,1);
@@ -1791,6 +1985,8 @@ public class Slice{
 		yA=y+0;
 		xB=x+0;
 		yB=y-1;
+		maxW = MbWidthC;
+		maxH = MbHeightC;
 		Derivation_process_for_neighbouring_locations(xA,yA);
 		chroma4x4BlkIdxA=2*(yW/4)+(xW/4);
 		Derivation_process_for_neighbouring_locations(xB,yB);
@@ -1812,16 +2008,11 @@ public class Slice{
 			// – Otherwise (this process is invoked for neighbouring chroma locations),
 			// maxW = MbWidthC (6-32)
 			// maxH = MbHeightC	
-		// Depending on the variable MbaffFrameFlag, the neighbouring locations are derived as follows:
-		// – If MbaffFrameFlag is equal to 0, the specification for neighbouring locations in fields and non-MBAFF frames as described in clause 6.4.12.1 is applied.
 		if(!MbaffFrameFlag){
 			Derivation_process_for_neighbouring_macroblock_addresses_and_their_availability();
 			xW =(xn+maxW)%maxW;
 			yW = (yn+maxH)%maxH;
-			// System.out.println(xn+"= "+yn+" ="+maxW+" "+maxH);
 		}
-		// – Otherwise (MbaffFrameFlag is equal to 1), the specification for neighbouring locations in MBAFF frames as described in clause 6.4.12.2 is applied.
-
 	}
 	public void ChromaDCLevelnC(){
 		if(ChromaArrayType==1){
@@ -1840,7 +2031,7 @@ public class Slice{
 		ChromaDCLevel=new int[2][NumC8x8*4];
 		ChromaACLevel=new int[2][NumC8x8*4+4][15];
 		
-
+		int countNonZero;
 		if(!pps0.entropy_coding_mode_flag){
 		}else{
 			// int []residual_block=residual_block_cabac();
@@ -1874,7 +2065,13 @@ public class Slice{
 							setnC(3);
 							System.out.println("ChromaACLevel ===> "+NumC8x8);
 							p.residual_block_cavlc(ChromaACLevel[iCbCr][i8x8*4+i4x4],Math.max(0,startIdx-1),endIdx-1,15);
-							
+							countNonZero=0;
+							for(int i=0;i<15;i++){
+								if(ChromaACLevel[iCbCr][i8x8*4+i4x4][i]!=0){
+									countNonZero++;
+								}
+							}
+							mbData.cbcr4x4blk[iCbCr][i8x8*4+i4x4]=countNonZero;
 						}else{
 							for(int i=0;i<15;i++){
 								chroma4x4BlkIdx=i8x8*4+i4x4;
@@ -1887,9 +2084,7 @@ public class Slice{
 			}
 		}else if(ChromaArrayType==3){
 			System.out.println("\n chroma component present \n"+ChromaArrayType);
-
 			cb4x4BlkIdx=0;
-			// System.out.println("ChromaArrayType==3");
 			residual_luma(i16x16DClevel,i16x16AClevel,level4x4,level8x8,startIdx,endIdx);
 			CbIntra16x16DCLevel=i16x16DClevel;
 			CbIntra16x16ACLevel=i16x16AClevel;
@@ -1906,81 +2101,75 @@ public class Slice{
 
 	public void residual_luma(int[] i16x16DClevel,int[][] i16x16AClevel
 		,int[][] level4x4,int[][] level8x8,int startIdx,int endIdx){
+		System.out.println("residual_luma called ");
 		if(startIdx==0&&MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 			luma4x4BlkIdx=0;
 			setnC(0);
 			System.out.println("i16x16DClevel");
 			p.residual_block_cavlc(i16x16DClevel,0,15,16);
 		}
-
-		// System.out.println("transform_size_8x8_flag "+transform_size_8x8_flag);
 		for(int i8x8=0;i8x8<4;i8x8++){
 			if(!transform_size_8x8_flag||!pps0.entropy_coding_mode_flag){
 				for(int i4x4=0;i4x4<4;i4x4++){
-					// if((CodedBlockPatternLuma & (1<<i8x8))>0){
-					// 	// System.out.println("impelmentation  CodedBlockPatternLuma & (1<<i8x8))>0 line 1706");
-					// 	// System.out.println();
-					// }
-					// System.out.println(CodedBlockPatternLuma+" "+"CodedBlockPatternLuma");
-					// if(CodedBlockPatternChroma==0){
-
-					// }
-					// System.out.println((CodedBlockPatternLuma & (1<<i8x8))+" if cond "+CodedBlockPatternLuma+"");
 					if((CodedBlockPatternLuma & (1<<i8x8))>0){
 						if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
-							// i16x16AClevel=
 							int [] ac=new int[15];
 							luma4x4BlkIdx=i8x8*4+i4x4;
 							setnC(0);
 							p.residual_block_cavlc(ac,Math.max(0,startIdx-1),endIdx-1,15);
 							i16x16AClevel[i8x8*4+i4x4]=ac;
-							System.out.println("i16x16AClevel");
+							int countNonZero=0;
+							for(int j=0;j<15;j++){
+								if(i16x16AClevel[i8x8*4+i4x4][j]!=0){
+									countNonZero++;
+								}
+							}
+							mbData.luma4x4blk[luma4x4BlkIdx]=countNonZero;
+							// System.out.println("i16x16AClevel");
 						}else{
-							int [] l4x4=new int[16];
+							int c=i8x8*4+i4x4;
+							System.out.println();
+							System.out.println("level4x4 "+c);
 							luma4x4BlkIdx=i8x8*4+i4x4;
 							setnC(0);
-							// p.residual_block_cavlc(l4x4,Math.max(0,startIdx-1),endIdx-1,15);
-
-							p.residual_block_cavlc(l4x4,startIdx,endIdx,16);
-							// System.out.println("l4x4  "+CodedBlockPatternLuma+"  "+mbRow);
-							level4x4[i8x8*4+i4x4]=l4x4;
-
-							// residual_block(level4x4[i8x8*4])
-							// System.out.println("line 580 implemetation required");
+							p.residual_block_cavlc(level4x4[i8x8*4+i4x4],startIdx,endIdx,16);
+							int countNonZero=0;
+							for(int j=0;j<16;j++){
+								if(level4x4[i8x8*4+i4x4][j]!=0){
+									countNonZero++;
+								}
+							}
+							mbData.luma4x4blk[luma4x4BlkIdx]=countNonZero;
 						}
 
 					}else if(MbPartPredMode(mbRow,0).equals("Intra_16x16")){
 						for(int i=0;i<15;i++){
-							// System.out.print("0");
 
 							i16x16AClevel[i8x8*4+i4x4][i]=0;
-							// level8x8[i8x8][4*i+i4x4]=level4x4[i8x8*4+i4x4][i];
 						}
 					}else{
 						for (int i=0;i<16 ;i++ ) {
-							// System.out.println("line 600 implemetation required");
-							// System.out.println("0");	
-							level8x8[i8x8][4*i+i4x4]=level4x4[i8x8*4+i4x4][i];
-								
+							level4x4[i8x8*4+i4x4][i]=0;	
+							
 						}
 					}
 					if(!pps0.entropy_coding_mode_flag&&transform_size_8x8_flag){
 						for(int i=0;i<16;i++){
-							// System.out.println("line 608 implemetation required");
 
 							level8x8[i8x8][4*i+i4x4]=level4x4[i8x8*4+i4x4][i];
 						}
 					}
 				}
 			}
+
 			else if((CodedBlockPatternLuma&(1<<i8x8))!=0){
 				int[] l8x8=new int [64];
 				setnC(0);
-
+				System.out.println("level8x8");
 				p.residual_block_cavlc(l8x8,4*startIdx,4*endIdx+3,64);
 				level8x8[i8x8]=l8x8;
 					// residual_block( level8x8[ i8x8 ], 4 * startIdx, 4 * endIdx + 3, 64 )
-				System.out.println("level8x8");
+				// System.out.println("level8x8");
 			}else{
 				for(int i=0;i<64;i++){
 					// System.out.print("line 580 implemetation required");
@@ -2011,12 +2200,6 @@ public class Slice{
 	public void sub_mb_pred(int mb_type){
 		System.out.println("sub_mb_pred implemetation required");
 	}// not for i slice
-
-	
-
-
-
-
 
 	public void ToImage(){
 		int row=SL.length;

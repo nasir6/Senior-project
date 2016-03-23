@@ -10,4 +10,4 @@
 			// 9	SI (SI slice)
 
 			Change table for P slice.
-			
+			Change prediction prcess while transformation 
